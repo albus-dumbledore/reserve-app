@@ -109,7 +109,8 @@ Example summaries:
     let parsed: Array<{ title: string; author: string; summary: string; year?: number | null }> | null = null;
     try {
       parsed = JSON.parse(content);
-    } catch {
+    } catch (parseError) {
+      console.error('Failed to parse book search response:', content);
       parsed = null;
     }
 
@@ -117,8 +118,8 @@ Example summaries:
       return NextResponse.json({
         books: [{
           title: title,
-          author: author || '',
-          summary: 'A physical book in your reading room.',
+          author: author || 'Unknown Author',
+          summary: `A thoughtful read waiting to be discovered. Add it to your library and begin your journey with this book.`,
           year: null
         }]
       });
