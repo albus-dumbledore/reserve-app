@@ -28,6 +28,11 @@ export async function POST(req: Request) {
 
 Book search: ${bookQuery}
 
+🇮🇳 INDIAN READER:
+- When possible, prioritize Indian editions or Indian authors
+- Include books available in India or relevant to Indian readers
+- If the search clearly indicates a Western/international book, find that book but also suggest similar Indian alternatives
+
 Task: Find the top 5 most likely books that match this search query.
 
 For each book:

@@ -66,6 +66,12 @@ Current Context:
 
 ${contextPrompt}
 
+🇮🇳 INDIAN READER PRIORITY:
+- Prioritize Indian authors when selecting books (aim for at least 50-60% Indian authors)
+- Include books that resonate with Indian cultural context and seasons
+- Balance contemporary Indian voices with classic Indian literature
+- When selecting international books, consider their relevance to Indian readers
+
 IMPORTANT - Context-Driven Curation:
 Based on the current month, season, weather, and location above, you must:
 1. Choose GENRES that naturally fit this moment in time
