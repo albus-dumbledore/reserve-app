@@ -56,7 +56,7 @@ export default function SubscriptionPage() {
     plan: 'Annual Membership',
     status: 'active',
     renewalDate: 'March 15, 2026',
-    price: '₹2,999/year'
+    price: '₹1,188/year'
   };
 
   return (

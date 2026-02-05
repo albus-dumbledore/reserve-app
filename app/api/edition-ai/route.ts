@@ -5,7 +5,7 @@ import type { ReadingContext } from '@/lib/context';
 
 export const runtime = 'nodejs';
 
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
 
 interface AIEditionResponse {
   theme: string;

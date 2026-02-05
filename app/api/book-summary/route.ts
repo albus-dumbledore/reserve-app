@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
 
 async function searchOpenLibrary(title: string, author?: string) {
   try {
