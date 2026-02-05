@@ -299,6 +299,8 @@ export async function POST(req: Request) {
                             messageLower.includes('finance') ||
                             messageLower.includes('money') ||
                             messageLower.includes('science') ||
+                            messageLower.includes('feminism') || // Specialized topic
+                            messageLower.includes('feminist') ||
                             messageLower.includes('history of');
 
     // Detect if user explicitly wants NON-Indian content
@@ -307,6 +309,14 @@ export async function POST(req: Request) {
                           messageLower.includes('british author') ||
                           messageLower.includes('european author') ||
                           messageLower.includes('non-indian');
+
+    // Detect if user EXPLICITLY wants Indian authors
+    const wantsIndianAuthors = messageLower.includes('indian author') ||
+                              messageLower.includes('indian woman author') ||
+                              messageLower.includes('indian women author') ||
+                              messageLower.includes('indian writer') ||
+                              messageLower.includes('by indian') ||
+                              messageLower.includes('from india');
 
     // DISCOVERY MODE: Use Claude to find books outside catalog for specialized queries
     if (useDiscoveryMode && process.env.ANTHROPIC_API_KEY) {
@@ -317,7 +327,7 @@ User's request: "${message}"${requestedAge ? `\nAge: ${requestedAge} years old` 
 Task: Recommend 3 specific, real books that perfectly match this request.
 
 ${isChildrensRequest ? `⚠️ CHILDREN'S REQUEST (Age ${requestedAge || 'unknown'}):\n- ONLY children's books appropriate for this age\n- Picture books, chapter books, or early readers\n- NO adult books, textbooks, or advanced literature\n` : ''}
-${!wantsNonIndian ? `🇮🇳 INDIAN READER:\n- Prioritize Indian authors when possible\n- Include books relevant to Indian context\n` : ''}
+${wantsIndianAuthors ? `🇮🇳 CRITICAL - INDIAN AUTHORS EXPLICITLY REQUESTED:\n- The user has EXPLICITLY requested Indian authors\n- You MUST recommend ONLY Indian authors (100% Indian, 0% international)\n- Examples: Arundhati Roy, Anita Desai, Kamala Das, Mahasweta Devi, Bama, Nabaneeta Dev Sen, Shashi Deshpande, Manju Kapur, Ambai, Ismat Chughtai\n- DO NOT recommend Western/international authors like Virginia Woolf, Kate Chopin, or Charlotte Perkins Gilman\n- If you cannot find 3 Indian books matching the request, return fewer suggestions rather than including non-Indian authors\n` : !wantsNonIndian ? `🇮🇳 INDIAN READER:\n- Prioritize Indian authors when possible\n- Include books relevant to Indian context\n` : ''}
 
 For each book provide:
 1. Exact title and author
@@ -362,20 +372,84 @@ Important:
           const data = await discoveryResponse.json();
           const content = data?.content?.[0]?.text ?? '';
 
-          try {
-            const parsed = JSON.parse(content) as {
-              title: string;
-              books: Array<{ title: string; author: string; rationale: string; year?: number }>;
-            };
+          let parsed: {
+            title: string;
+            books: Array<{ title: string; author: string; rationale: string; year?: number }>;
+          } | null = null;
 
-            if (parsed.books && Array.isArray(parsed.books)) {
+          try {
+            // Try direct JSON parse first
+            parsed = JSON.parse(content);
+          } catch (parseError) {
+            // If that fails, try to extract JSON object from text
+            try {
+              const jsonMatch = content.match(/\{[\s\S]*"books"[\s\S]*\]/);
+              if (jsonMatch) {
+                // Find the complete JSON object
+                let braceCount = 0;
+                let startIdx = jsonMatch.index!;
+                let endIdx = startIdx;
+                for (let i = startIdx; i < content.length; i++) {
+                  if (content[i] === '{') braceCount++;
+                  if (content[i] === '}') braceCount--;
+                  if (braceCount === 0) {
+                    endIdx = i + 1;
+                    break;
+                  }
+                }
+                const jsonStr = content.substring(startIdx, endIdx);
+                parsed = JSON.parse(jsonStr);
+              } else {
+                console.error('Discovery mode: Failed to find JSON object in response');
+                parsed = null;
+              }
+            } catch (extractError) {
+              console.error('Discovery mode parse error:', parseError);
+              parsed = null;
+            }
+          }
+
+          try {
+            if (parsed && parsed.books && Array.isArray(parsed.books)) {
               // Convert to concierge format
-              const suggestions = parsed.books.map((book) => ({
+              let suggestions = parsed.books.map((book) => ({
                 bookId: `discovered-${book.title.toLowerCase().replace(/\s+/g, '-')}`,
                 title: book.title,
                 author: book.author,
                 rationale: book.rationale
               }));
+
+              // POST-PROCESSING: Enforce Indian author constraints for Discovery Mode
+              if (wantsIndianAuthors) {
+                const indianAuthors = [
+                  'r.k. narayan', 'r k narayan', 'ruskin bond', 'amitav ghosh',
+                  'arundhati roy', 'jhumpa lahiri', 'vikram seth', 'anita desai',
+                  'salman rushdie', 'rohinton mistry', 'kiran desai', 'aravind adiga',
+                  'shashi tharoor', 'premchand', 'tagore', 'rabindranath tagore',
+                  'mulk raj anand', 'r.k. laxman', 'chetan bhagat', 'amish tripathi',
+                  'devdutt pattanaik', 'sudha murty', 'manu s pillai', 'shobhaa de',
+                  'anuja chauhan', 'anuradha roy', 'manju kapur', 'bharati mukherjee',
+                  'vaikom muhammad basheer', 'kamala das', 'o.v. vijayan',
+                  'mahasweta devi', 'nirmal verma', 'u.r. ananthamurthy',
+                  'girish karnad', 'shyam selvadurai', 'nayantara sahgal',
+                  'jawaharlal nehru', 'abul kalam azad', 'khushwant singh',
+                  'william dalrymple', 'ramachandra guha', 'amartya sen',
+                  'shashi deshpande', 'bama', 'nabaneeta dev sen', 'ambai', 'ismat chughtai'
+                ];
+
+                const isIndianAuthor = (author: string) => {
+                  const authorLower = author.toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove diacritics
+                  return indianAuthors.some(name => {
+                    const nameLower = name.toLowerCase()
+                      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    return authorLower.includes(nameLower);
+                  });
+                };
+
+                // Filter to keep only Indian authors
+                suggestions = suggestions.filter(s => isIndianAuthor(s.author));
+              }
 
               return NextResponse.json({
                 title: parsed.title || 'Handpicked for you',
@@ -395,7 +469,7 @@ Important:
     // CATALOG MODE: Fall back to catalog-based recommendations
     let candidates = candidateSet(message);
 
-    // ALWAYS prioritize Indian authors by default (unless explicitly requesting non-Indian)
+    // Indian author prioritization logic
     if (!wantsNonIndian) {
       const indianAuthors = [
         // Classic Indian authors
@@ -411,7 +485,14 @@ Important:
         // Regional Indian authors
         'vaikom muhammad basheer', 'kamala das', 'o.v. vijayan',
         'mahasweta devi', 'nirmal verma', 'u.r. ananthamurthy',
-        'girish karnad', 'shyam selvadurai', 'nayantara sahgal'
+        'girish karnad', 'shyam selvadurai', 'nayantara sahgal',
+        // Ancient/classical Indian authors
+        'valmiki', 'vālmīki', 'vatsyayana', 'vatsyāyana', 'kalidasa', 'kālidāsa',
+        // Indian historians/non-fiction
+        'jawaharlal nehru', 'ramachandra guha', 'amartya sen', 'khushwant singh',
+        // Indian women authors
+        'shashi deshpande', 'bama', 'nabaneeta dev sen', 'ambai', 'ismat chughtai',
+        'abul kalam azad'
       ];
 
       // Separate Indian and non-Indian authors
@@ -434,12 +515,39 @@ Important:
         }
       });
 
-      // Balanced representation: 50% Indian authors, 50% international
-      const indianCount = Math.ceil(candidates.length * 0.5);
-      candidates = [
-        ...indianBooks.slice(0, indianCount),
-        ...otherBooks.slice(0, candidates.length - indianCount)
-      ];
+      // If user EXPLICITLY requested Indian authors, provide ONLY Indian books
+      if (wantsIndianAuthors) {
+        candidates = indianBooks;
+        console.log(`[Indian Priority] Explicit request - providing ${candidates.length} Indian books only`);
+      } else {
+        // Otherwise, balanced representation: 50% Indian authors, 50% international
+        // Ensure we have minimum 20 Indian books in candidate pool for balance
+        const minIndianBooks = 20;
+        let expandedIndianBooks = indianBooks;
+
+        if (indianBooks.length < minIndianBooks) {
+          // Add more Indian books from full catalog (not just mood-matched ones)
+          const allIndianBooks = bookCatalog.filter(c => {
+            const authorLower = c.author.toLowerCase();
+            const isIndian = indianAuthors.some(name => authorLower.includes(name));
+            // Don't add duplicates
+            const notAlreadyIncluded = !indianBooks.some(existing => existing.id === c.id);
+            return isIndian && notAlreadyIncluded;
+          });
+          expandedIndianBooks = [...indianBooks, ...allIndianBooks].slice(0, Math.max(minIndianBooks, indianBooks.length));
+        }
+
+        // Now create 50/50 balanced candidate list
+        const totalCandidates = Math.max(candidates.length, 40);
+        const halfCount = Math.floor(totalCandidates / 2);
+
+        candidates = [
+          ...expandedIndianBooks.slice(0, halfCount),
+          ...otherBooks.slice(0, halfCount)
+        ];
+
+        console.log(`[Indian Priority] Balanced mode - ${expandedIndianBooks.slice(0, halfCount).length} Indian + ${otherBooks.slice(0, halfCount).length} international = ${candidates.length} total (expanded ${indianBooks.length}→${expandedIndianBooks.length} Indian books)`);
+      }
     }
 
     // Filter out inappropriate content for children's requests
@@ -494,7 +602,7 @@ Important:
       ? `\n\nCurrent Reading Context:\n- Location: ${context.location || 'Not specified'}\n- Season: ${context.season}\n- Time of Day: ${context.timeOfDay}${context.weather ? `\n- Weather: ${context.weather.condition}, ${context.weather.temp}°C` : ''}\n- Reading Mood: ${context.readingMood}${!wantsNonIndian ? '\n- Cultural Context: Indian reader - prioritize Indian authors, settings, and cultural sensibilities' : ''}\n\nUSE THIS CONTEXT: Factor in the weather, season, and time of day when making recommendations. ${context.weather?.condition.includes('Rain') ? 'Rainy weather pairs well with cozy, introspective reads.' : context.weather?.condition.includes('Sun') || context.weather?.condition.includes('Clear') ? 'Clear weather invites bright, energizing books.' : context.season === 'Winter' ? 'Winter calls for contemplative, intimate reads.' : context.season === 'Summer' ? 'Summer energy suits lighter, adventurous books.' : ''}${!wantsNonIndian ? ' For Indian readers, actively prioritize books by Indian authors, books set in India, or themes relevant to Indian culture.' : ''}`
       : '';
 
-    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? `\n\n⚠️ CRITICAL CONTENT SAFETY - ${requestedAge ? `AGE ${requestedAge}` : 'CHILDREN\'S'} REQUEST:\nYou MUST:\n- ONLY recommend books specifically written for ${requestedAge ? `${requestedAge}-year-olds` : 'children'}\n- NO academic texts, anthologies, grammar books, or advanced literature\n- NO adult authors like Virginia Woolf, Montaigne, Kafka, Joyce\n- ONLY children's books, picture books, early readers, or age-appropriate stories\n- Examples of GOOD suggestions: ${requestedAge && requestedAge <= 8 ? 'Picture books, Dr. Seuss, Eric Carle, simple stories with illustrations' : 'Young adult novels, chapter books, age-appropriate fiction'}\n- Examples of BAD suggestions: Norton Anthology, Essays, Grammar textbooks, Classic literature not written for children` : ''}${!wantsNonIndian ? '\n\n🇮🇳 INDIAN READER - DEFAULT PRIORITY:\nYou MUST actively prioritize Indian authors and content:\n- FIRST PRIORITY: Indian authors (R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Anita Desai, Salman Rushdie, Rohinton Mistry, Kiran Desai, Aravind Adiga, Sudha Murty, Devdutt Pattanaik)\n- SECOND PRIORITY: Books set in India or about Indian culture\n- THIRD PRIORITY: South Asian authors and themes\n- Consider Indian festivals (Diwali, Holi), monsoon season, and cultural context\n- Use Indian examples and references when explaining choices\n- CRITICAL: The candidate list has been pre-filtered to prioritize Indian authors (70/30 split) - actively choose from the Indian authors available\n- DO NOT ignore this - Indian authors should appear in majority of your recommendations' : ''}
+    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? `\n\n⚠️ CRITICAL CONTENT SAFETY - ${requestedAge ? `AGE ${requestedAge}` : 'CHILDREN\'S'} REQUEST:\nYou MUST:\n- ONLY recommend books specifically written for ${requestedAge ? `${requestedAge}-year-olds` : 'children'}\n- NO academic texts, anthologies, grammar books, or advanced literature\n- NO adult authors like Virginia Woolf, Montaigne, Kafka, Joyce\n- ONLY children's books, picture books, early readers, or age-appropriate stories\n- Examples of GOOD suggestions: ${requestedAge && requestedAge <= 8 ? 'Picture books, Dr. Seuss, Eric Carle, simple stories with illustrations' : 'Young adult novels, chapter books, age-appropriate fiction'}\n- Examples of BAD suggestions: Norton Anthology, Essays, Grammar textbooks, Classic literature not written for children` : ''}${wantsIndianAuthors ? '\n\n🇮🇳 CRITICAL - INDIAN AUTHORS EXPLICITLY REQUESTED:\nYou MUST recommend ONLY books by Indian authors (100% Indian):\n- REQUIRED: All suggestions must be Indian authors\n- Examples: R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Anita Desai, Salman Rushdie, Rohinton Mistry, Kiran Desai, Aravind Adiga, Sudha Murty, Devdutt Pattanaik, Shashi Tharoor, Kamala Das, Mahasweta Devi\n- DO NOT recommend any Western/international authors\n- The candidate list has been filtered to ONLY Indian authors' : !wantsNonIndian ? '\n\n🇮🇳 INDIAN READER - BALANCED REPRESENTATION:\nYou MUST maintain 50/50 balance in your 3 selections:\n- REQUIRED: Select EXACTLY 1-2 Indian authors AND 1-2 international authors (NOT all Indian, NOT all international)\n- For 3 suggestions: 2 Indian + 1 international OR 1 Indian + 2 international\n- The candidate list has Indian and international authors available\n- Indian authors include: R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Anita Desai, Salman Rushdie, Rohinton Mistry, Kiran Desai, Aravind Adiga, Sudha Murty, Devdutt Pattanaik\n- CRITICAL: Mix Indian AND international authors in your selections - do NOT select only one group\n- Choose based on best fit for the request, but maintain the balance requirement' : ''}
 
 ANALYZE THE REQUEST FIRST:
 
@@ -631,9 +739,108 @@ ${prompt}`
       });
     }
 
+    // Map AI suggestions to actual book objects
+    let finalSuggestions = mapSuggestions(candidates, parsed.suggestions);
+
+    console.log(`[Concierge] Total candidates: ${candidates.length}, Final suggestions: ${finalSuggestions.length}`);
+
+    // POST-PROCESSING: Enforce Indian author constraints
+    if (!wantsNonIndian && finalSuggestions.length > 0) {
+      const indianAuthors = [
+        'r.k. narayan', 'r k narayan', 'ruskin bond', 'amitav ghosh',
+        'arundhati roy', 'jhumpa lahiri', 'vikram seth', 'anita desai',
+        'salman rushdie', 'rohinton mistry', 'kiran desai', 'aravind adiga',
+        'shashi tharoor', 'premchand', 'tagore', 'rabindranath tagore',
+        'mulk raj anand', 'r.k. laxman', 'chetan bhagat', 'amish tripathi',
+        'devdutt pattanaik', 'sudha murty', 'manu s pillai', 'shobhaa de',
+        'anuja chauhan', 'anuradha roy', 'manju kapur', 'bharati mukherjee',
+        'vaikom muhammad basheer', 'kamala das', 'o.v. vijayan',
+        'mahasweta devi', 'nirmal verma', 'u.r. ananthamurthy',
+        'girish karnad', 'shyam selvadurai', 'nayantara sahgal',
+        'valmiki', 'vālmīki', 'vatsyayana', 'vatsyāyana', 'kalidasa', 'kālidāsa',
+        'jawaharlal nehru', 'ramachandra guha', 'amartya sen', 'khushwant singh',
+        'shashi deshpande', 'bama', 'nabaneeta dev sen', 'ambai', 'ismat chughtai',
+        'abul kalam azad'
+      ];
+
+      const isIndianAuthor = (author: string) => {
+        const authorLower = author.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove diacritics
+        return indianAuthors.some(name => {
+          const nameLower = name.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          // Use word boundary matching to avoid false positives like "Barack Obama" matching "bama"
+          const regex = new RegExp('\\b' + nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+          return regex.test(authorLower);
+        });
+      };
+
+      // If user explicitly requested Indian authors, filter out non-Indian ones
+      if (wantsIndianAuthors) {
+        finalSuggestions = finalSuggestions.filter(s => isIndianAuthor(s.author));
+      } else {
+        // Otherwise, enforce 50% balance - exactly 1 or 2 Indian authors in 3 suggestions
+        const indianSuggestions = finalSuggestions.filter(s => isIndianAuthor(s.author));
+        const nonIndianSuggestions = finalSuggestions.filter(s => !isIndianAuthor(s.author));
+        const targetIndianCount = Math.ceil(finalSuggestions.length * 0.5); // For 3 suggestions = 2
+        const targetNonIndianCount = finalSuggestions.length - targetIndianCount; // For 3 suggestions = 1
+
+        console.log(`[Balance Check] Current: ${indianSuggestions.length} Indian + ${nonIndianSuggestions.length} non-Indian, Target: ${targetIndianCount} Indian + ${targetNonIndianCount} non-Indian`);
+
+        // Enforce exact balance by swapping if needed
+        if (indianSuggestions.length > targetIndianCount) {
+          // Too many Indian - replace excess with non-Indian from candidates
+          const excessIndian = indianSuggestions.slice(targetIndianCount);
+          const nonIndianCandidates = candidates.filter(c =>
+            !isIndianAuthor(c.author) &&
+            !finalSuggestions.some(s => s.bookId === c.id)
+          );
+
+          if (nonIndianCandidates.length >= excessIndian.length) {
+            const replacements = nonIndianCandidates.slice(0, excessIndian.length).map(book => ({
+              bookId: book.id,
+              title: book.title,
+              author: book.author,
+              rationale: 'A thoughtful choice that complements your request.'
+            }));
+
+            finalSuggestions = [
+              ...indianSuggestions.slice(0, targetIndianCount),
+              ...nonIndianSuggestions,
+              ...replacements
+            ];
+            console.log(`[Balance Enforcement] Replaced ${excessIndian.length} excess Indian (${excessIndian.map(s => s.author).join(', ')}) with non-Indian (${replacements.map(r => r.author).join(', ')})`);
+          }
+        } else if (indianSuggestions.length < targetIndianCount) {
+          // Too few Indian - replace non-Indian with Indian from candidates
+          const needed = targetIndianCount - indianSuggestions.length;
+          const indianCandidates = candidates.filter(c =>
+            isIndianAuthor(c.author) &&
+            !finalSuggestions.some(s => s.bookId === c.id)
+          );
+
+          if (indianCandidates.length >= needed) {
+            const replacements = indianCandidates.slice(0, needed).map(book => ({
+              bookId: book.id,
+              title: book.title,
+              author: book.author,
+              rationale: 'A thoughtful choice that resonates with your request.'
+            }));
+
+            finalSuggestions = [
+              ...indianSuggestions,
+              ...nonIndianSuggestions.slice(0, targetNonIndianCount),
+              ...replacements
+            ];
+            console.log(`[Balance Enforcement] Added ${needed} Indian (${replacements.map(r => r.author).join(', ')}) to meet target`);
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       title: parsed.title || 'A few quiet suggestions',
-      suggestions: mapSuggestions(candidates, parsed.suggestions)
+      suggestions: finalSuggestions
     });
   } catch (error) {
     return NextResponse.json({ error: 'Concierge unavailable.' }, { status: 500 });
