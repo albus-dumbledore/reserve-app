@@ -120,6 +120,17 @@ export default function MyLibraryPage() {
     library.setValue(updated);
   };
 
+  const handleStartSession = (bookId: string, setCurrent: boolean = false) => {
+    if (setCurrent) {
+      const updated = library.value.map((book) => ({
+        ...book,
+        isCurrent: book.id === bookId
+      }));
+      library.setValue(updated);
+    }
+    router.push(`/session/select?itemId=${bookId}`);
+  };
+
   const handleRemove = (id: string) => {
     const updated = library.value.filter((book) => book.id !== id);
     library.setValue(updated);
@@ -342,19 +353,25 @@ export default function MyLibraryPage() {
                             </div>
                             <div className="flex flex-col gap-2">
                               <button
-                                onClick={() => setConfirmRemove(book.id)}
-                                className="rounded-full border border-[var(--border)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--muted)] hover:border-red-500 hover:text-red-500"
+                                onClick={() => handleStartSession(book.id, false)}
+                                className="rounded-xl border border-[var(--text)] bg-[var(--text)] px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--bg)] hover:opacity-90 transition-opacity whitespace-nowrap"
                               >
-                                ×
+                                Start Session
                               </button>
                               {!book.isCurrent ? (
                                 <button
-                                  onClick={() => handleSetCurrent(book.id)}
-                                  className="rounded-full border border-[var(--border)] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--muted)]"
+                                  onClick={() => handleStartSession(book.id, true)}
+                                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--text)] hover:border-[var(--text)] hover:bg-[var(--card)] transition-colors whitespace-nowrap"
                                 >
-                                  Set Current
+                                  Set Current & Start
                                 </button>
                               ) : null}
+                              <button
+                                onClick={() => setConfirmRemove(book.id)}
+                                className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--muted)] hover:border-red-500 hover:text-red-500"
+                              >
+                                Remove
+                              </button>
                             </div>
                           </div>
                         </div>
