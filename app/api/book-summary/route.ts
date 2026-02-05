@@ -33,19 +33,26 @@ Book search: ${bookQuery}
 - Include books available in India or relevant to Indian readers
 - If the search clearly indicates a Western/international book, find that book but also suggest similar Indian alternatives
 
-IMPORTANT - TITLE VARIATIONS PRIORITY:
-- The user wants to see ALL books with the same or similar title
-- FIRST: Find all books with EXACT title match "${title}" (different authors, editions, years)
-- SECOND: Find books with SIMILAR titles (e.g., "The Alchemist's Daughter", "Alchemist of Souls")
-- THIRD: Only then add thematically similar books
-- The user may have wrong author info, so show ALL title matches regardless of author
+IMPORTANT - COMPREHENSIVE TITLE MATCHING:
+- The user wants to see ALL books with matching title "${title}"
+- Search broadly across ALL authors, editions, and publication years
+- Do NOT limit to famous/popular authors only
+- Include lesser-known authors, self-published books, recent releases
 
-Example: If searching "The Alchemist", return:
-1. The Alchemist by Paulo Coelho (1988)
-2. The Alchemist by Ben Jonson (1610 play)
-3. The Alchemist's Daughter by Katharine McMahon
-4. Other books with "Alchemist" in title
-5. Similar themed books only if less than 5 title matches
+PRIORITY ORDER:
+1. EXACT title match "${title}" - ALL authors (famous AND unknown)
+2. SIMILAR titles (e.g., "${title}'s Guide", "${title}: How to...")
+3. Close variations only if less than 3 exact matches
+4. Thematically similar ONLY if less than 5 total matches
+
+Example: If searching "Focus on What Matters", return:
+1. Focus on What Matters by Darius Foroux
+2. Focus on What Matters by Leo Babauta
+3. Focus on What Matters by Courtney Carver
+4. Focus on What Matters Most by [any author]
+5. Similar productivity books (only if needed)
+
+CRITICAL: Cast a WIDE net - include obscure authors, not just bestsellers!
 
 Task: Find the top 5 books that match this search query, prioritizing title variations.
 
