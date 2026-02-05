@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reservé Logo Export</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      background: #f5f5f5;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-bottom: 30px;
+      color: #1a1a1a;
+    }
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    .logo-item {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .logo-item h3 {
+      margin: 0 0 20px 0;
+      color: #1a1a1a;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .logo-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .instructions {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .instructions h2 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+    }
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    /* Dark theme variant */
+    .dark {
+      background: #1a1a1a;
+    }
+    .dark svg {
+      color: #ffffff;
+    }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.9em;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Reservé Logo Export Templates</h1>
+
+    <div class="logo-grid">
+      <!-- 512x512 Light -->
+      <div class="logo-item">
+        <h3>512×512 App Icon (Light)</h3>
+        <div class="logo-display" id="logo-512-light">
+          <svg width="512" height="512" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="8" width="20" height="32" rx="1" stroke="#1a1a1a" stroke-width="2" fill="none"/>
+            <path d="M24 8 L24 20 L26 18 L28 20 L28 8" fill="#1a1a1a" opacity="0.8"/>
+            <line x1="16" y1="14" x2="32" y2="14" stroke="#1a1a1a" stroke-width="0.5" opacity="0.3"/>
+            <line x1="16" y1="34" x2="32" y2="34" stroke="#1a1a1a" stroke-width="0.5" opacity="0.3"/>
+          </svg>
+        </div>
+        <small style="color: #666; font-size: 12px;">Right-click and "Save image as..." or take screenshot</small>
+      </div>
+
+      <!-- 512x512 Dark -->
+      <div class="logo-item">
+        <h3>512×512 App Icon (Dark)</h3>
+        <div class="logo-display dark" id="logo-512-dark">
+          <svg width="512" height="512" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="8" width="20" height="32" rx="1" stroke="#ffffff" stroke-width="2" fill="none"/>
+            <path d="M24 8 L24 20 L26 18 L28 20 L28 8" fill="#ffffff" opacity="0.8"/>
+            <line x1="16" y1="14" x2="32" y2="14" stroke="#ffffff" stroke-width="0.5" opacity="0.3"/>
+            <line x1="16" y1="34" x2="32" y2="34" stroke="#ffffff" stroke-width="0.5" opacity="0.3"/>
+          </svg>
+        </div>
+        <small style="color: #666; font-size: 12px;">Right-click and "Save image as..." or take screenshot</small>
+      </div>
+
+      <!-- 192x192 Light -->
+      <div class="logo-item">
+        <h3>192×192 App Icon (Light)</h3>
+        <div class="logo-display" id="logo-192-light">
+          <svg width="192" height="192" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="8" width="20" height="32" rx="1" stroke="#1a1a1a" stroke-width="2" fill="none"/>
+            <path d="M24 8 L24 20 L26 18 L28 20 L28 8" fill="#1a1a1a" opacity="0.8"/>
+            <line x1="16" y1="14" x2="32" y2="14" stroke="#1a1a1a" stroke-width="0.5" opacity="0.3"/>
+            <line x1="16" y1="34" x2="32" y2="34" stroke="#1a1a1a" stroke-width="0.5" opacity="0.3"/>
+          </svg>
+        </div>
+        <small style="color: #666; font-size: 12px;">Right-click and "Save image as..." or take screenshot</small>
+      </div>
+
+      <!-- Favicon -->
+      <div class="logo-item">
+        <h3>32×32 Favicon</h3>
+        <div class="logo-display" id="favicon">
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="8" width="20" height="32" rx="1" stroke="#1a1a1a" stroke-width="2" fill="none"/>
+            <path d="M24 8 L24 20 L26 18 L28 20 L28 8" fill="#1a1a1a" opacity="0.8"/>
+            <line x1="16" y1="14" x2="32" y2="14" stroke="#1a1a1a" stroke-width="0.5" opacity="0.3"/>
+            <line x1="16" y1="34" x2="32" y2="34" stroke="#1a1a1a" stroke-0.5" opacity="0.3"/>
+          </svg>
+        </div>
+        <small style="color: #666; font-size: 12px;">Right-click and "Save image as..." or take screenshot</small>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h2>Export Instructions</h2>
+      <ol>
+        <li><strong>Method 1 (Browser):</strong> Right-click on each logo above and select "Save image as..." to download as PNG</li>
+        <li><strong>Method 2 (Screenshot):</strong> Take a screenshot of each logo box, crop to exact size</li>
+        <li><strong>Method 3 (Design Tool):</strong> Copy the SVG code and import into Figma/Sketch/Illustrator, then export at required sizes</li>
+        <li>Replace the existing files:
+          <ul>
+            <li><code>public/icon-512.png</code> - Use the 512×512 light version</li>
+            <li><code>public/icon-192.png</code> - Use the 192×192 light version</li>
+            <li><code>public/favicon.ico</code> - Convert the 32×32 to .ico format</li>
+          </ul>
+        </li>
+        <li>For best results, ensure the background is transparent when exporting</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    // Helper to download SVG as PNG (requires modern browser)
+    function downloadSVGasPNG(svgElement, filename, scale = 1) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const img = new Image();
+
+      img.onload = function() {
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(function(blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+    }
+  </script>
+</body>
+</html>

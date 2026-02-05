@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Logo from './Logo';
 
 export default function MainNav() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +26,8 @@ export default function MainNav() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
-          <Link href="/library" className="flex items-center gap-2">
+          <Link href="/library" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+            <Logo size={32} />
             <span className="text-xl font-medium">Reservé</span>
           </Link>
 
