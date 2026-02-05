@@ -12,9 +12,11 @@ import { makeId } from '@/lib/utils';
 import { useReadingContext } from '@/hooks/useReadingContext';
 
 const quickPrompts = [
-  'Light reading',
-  'Deep dive',
-  'Travel book',
+  'Books by Indian authors',
+  'Something for a cozy winter evening',
+  'Help me focus better',
+  'Light and uplifting',
+  'Books for my 8-year-old',
   'Surprise me'
 ];
 
