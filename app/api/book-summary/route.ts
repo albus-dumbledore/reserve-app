@@ -33,13 +33,21 @@ Book search: ${bookQuery}
 - Include books available in India or relevant to Indian readers
 - If the search clearly indicates a Western/international book, find that book but also suggest similar Indian alternatives
 
-IMPORTANT - FLEXIBLE MATCHING:
-- The user may have entered incorrect author information
-- ALWAYS prioritize matching the TITLE first, even if the author doesn't match exactly
-- If "${title}" exists by a different author than "${author || 'provided'}", INCLUDE IT as the first result
-- Then show other books with similar titles or themes
+IMPORTANT - TITLE VARIATIONS PRIORITY:
+- The user wants to see ALL books with the same or similar title
+- FIRST: Find all books with EXACT title match "${title}" (different authors, editions, years)
+- SECOND: Find books with SIMILAR titles (e.g., "The Alchemist's Daughter", "Alchemist of Souls")
+- THIRD: Only then add thematically similar books
+- The user may have wrong author info, so show ALL title matches regardless of author
 
-Task: Find the top 5 most likely books that match this search query.
+Example: If searching "The Alchemist", return:
+1. The Alchemist by Paulo Coelho (1988)
+2. The Alchemist by Ben Jonson (1610 play)
+3. The Alchemist's Daughter by Katharine McMahon
+4. Other books with "Alchemist" in title
+5. Similar themed books only if less than 5 title matches
+
+Task: Find the top 5 books that match this search query, prioritizing title variations.
 
 For each book:
 1. Provide the exact title and author name (CORRECT author, even if user got it wrong)
@@ -68,10 +76,11 @@ Return JSON array with this exact format:
 
 Important:
 - Return 3-5 books maximum
-- TITLE match is more important than author match
-- Order by relevance (exact title match first, then similar books)
+- Prioritize books with MATCHING/SIMILAR TITLES over thematic similarity
+- Order: Exact title matches → Similar titles → Themed books
+- If multiple books have the same title (e.g., different authors/years), INCLUDE ALL OF THEM
 - Include publication year if known (otherwise use null)
-- If you can only find 1 book, return array with 1 item
+- Author is often wrong - don't filter by author, filter by TITLE
 - RETURN ONLY THE JSON ARRAY, NOTHING ELSE
 
 Example summaries:
