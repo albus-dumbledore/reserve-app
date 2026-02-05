@@ -107,6 +107,47 @@ function deriveTags(message: string) {
     moods.push('meditative', 'quiet', 'contemplative', 'grounded');
   }
 
+  // FOCUS/CLARITY needs
+  if (
+    normalized.includes('focus') ||
+    normalized.includes('clarity') ||
+    normalized.includes('clear mind') ||
+    normalized.includes('priorities') ||
+    normalized.includes('what matters') ||
+    normalized.includes('distract') ||
+    normalized.includes('scattered') ||
+    normalized.includes('attention')
+  ) {
+    moods.push('focused', 'grounded', 'contemplative', 'quiet');
+    genres.push('philosophy', 'essays');
+  }
+
+  // CHILDREN/KIDS/FAMILY content
+  if (
+    normalized.includes('kid') ||
+    normalized.includes('child') ||
+    normalized.includes('young') ||
+    normalized.includes('family') ||
+    normalized.includes('age appropriate')
+  ) {
+    genres.push('childrens', 'young-adult', 'middle-grade');
+    moods.push('warm', 'hopeful', 'gentle');
+  }
+
+  // INDIAN CONTEXT
+  if (
+    normalized.includes('india') ||
+    normalized.includes('indian') ||
+    normalized.includes('diwali') ||
+    normalized.includes('holi') ||
+    normalized.includes('monsoon') ||
+    normalized.includes('delhi') ||
+    normalized.includes('mumbai') ||
+    normalized.includes('bengal')
+  ) {
+    genres.push('indian-literature', 'south-asian');
+  }
+
   // LIGHT/GENTLE requests
   if (normalized.includes('light') || normalized.includes('gentle')) {
     moods.push('gentle', 'hopeful', 'warm');
@@ -241,7 +282,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Message required.' }, { status: 400 });
     }
 
+    // Check if request is for children/kids
+    const messageLower = message.toLowerCase();
+    const isChildrensRequest = messageLower.includes('kid') || messageLower.includes('child') ||
+                                messageLower.includes('young') || messageLower.includes('family') ||
+                                messageLower.includes('age appropriate');
+
+    // Detect Indian context
+    const isIndianContext = context?.location?.toLowerCase().includes('india') ||
+                           context?.location?.toLowerCase().includes('delhi') ||
+                           context?.location?.toLowerCase().includes('mumbai') ||
+                           context?.location?.toLowerCase().includes('bengal') ||
+                           messageLower.includes('india') || messageLower.includes('indian');
+
     let candidates = candidateSet(message);
+
+    // Filter out adult content for children's requests
+    if (isChildrensRequest) {
+      const adultKeywords = ['kama sutra', 'kamasutra', 'erotic', 'adult', 'mature', 'explicit', 'sex'];
+      candidates = candidates.filter((book) => {
+        const bookTitle = book.title.toLowerCase();
+        const bookDesc = (book.description || '').toLowerCase();
+        return !adultKeywords.some(keyword => bookTitle.includes(keyword) || bookDesc.includes(keyword));
+      });
+    }
 
     if (excludeBookIds.length > 0) {
       candidates = candidates.filter((book) => !excludeBookIds.includes(book.id));
@@ -256,10 +320,10 @@ export async function POST(req: Request) {
     }
 
     const contextInfo = context
-      ? `\n\nCurrent Reading Context:\n- Location: ${context.location || 'Not specified'}\n- Season: ${context.season}\n- Time of Day: ${context.timeOfDay}${context.weather ? `\n- Weather: ${context.weather.condition}, ${context.weather.temp}°C` : ''}\n- Reading Mood: ${context.readingMood}\n\nUSE THIS CONTEXT: Factor in the weather, season, and time of day when making recommendations. ${context.weather?.condition.includes('Rain') ? 'Rainy weather pairs well with cozy, introspective reads.' : context.weather?.condition.includes('Sun') || context.weather?.condition.includes('Clear') ? 'Clear weather invites bright, energizing books.' : context.season === 'Winter' ? 'Winter calls for contemplative, intimate reads.' : context.season === 'Summer' ? 'Summer energy suits lighter, adventurous books.' : ''}`
+      ? `\n\nCurrent Reading Context:\n- Location: ${context.location || 'Not specified'}\n- Season: ${context.season}\n- Time of Day: ${context.timeOfDay}${context.weather ? `\n- Weather: ${context.weather.condition}, ${context.weather.temp}°C` : ''}\n- Reading Mood: ${context.readingMood}${isIndianContext ? '\n- Cultural Context: Indian reader - consider Indian authors, settings, and cultural sensibilities' : ''}\n\nUSE THIS CONTEXT: Factor in the weather, season, and time of day when making recommendations. ${context.weather?.condition.includes('Rain') ? 'Rainy weather pairs well with cozy, introspective reads.' : context.weather?.condition.includes('Sun') || context.weather?.condition.includes('Clear') ? 'Clear weather invites bright, energizing books.' : context.season === 'Winter' ? 'Winter calls for contemplative, intimate reads.' : context.season === 'Summer' ? 'Summer energy suits lighter, adventurous books.' : ''}${isIndianContext ? ' For Indian readers, consider books by Indian authors, books set in India, or themes relevant to Indian culture when appropriate.' : ''}`
       : '';
 
-    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.
+    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? '\n\n⚠️ CRITICAL CONTENT SAFETY: This is a request for CHILDREN\'S/FAMILY books. You MUST:\n- ONLY recommend age-appropriate, family-friendly books\n- ABSOLUTELY NO adult content, mature themes, or explicit material\n- Focus on children\'s literature, young adult, or gentle family reads\n- Avoid any books with violence, adult themes, or inappropriate content' : ''}${isIndianContext ? '\n\n🇮🇳 INDIAN READER CONTEXT: Consider Indian cultural sensibilities, authors, and themes. When appropriate, prioritize:\n- Indian authors (R.K. Narayan, Arundhati Roy, Amitav Ghosh, Ruskin Bond, etc.)\n- Books set in India or exploring Indian culture\n- Themes relevant to Indian readers\n- Cultural festivals, seasons, and social context' : ''}
 
 ANALYZE THE REQUEST FIRST:
 
@@ -273,6 +337,8 @@ User's request: "${message}"${excludeBookIds.length > 0 ? `\n\nNote: User is ask
    - Drained/Exhausted → Need: Light, replenishing reads; avoid demanding books
    - Need confidence/motivation → Need: Quiet courage, resilience without toxic positivity
    - Seeking joy/delight → Need: Playful, life-affirming, delightful books
+   - Scattered/Distracted/Need focus → Need: Books about essentialism, clarity, priorities; philosophical essays on what matters
+   - Want clarity/perspective → Need: Wisdom literature, philosophical essays, contemplative non-fiction
 
 2. LIFE CONTEXT - What's happening in their life?
    - New parent/caregiver → Short sessions, life-affirming, easy to pick up/put down
