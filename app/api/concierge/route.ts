@@ -291,23 +291,32 @@ export async function POST(req: Request) {
                                 messageLower.includes('age appropriate') ||
                                 (requestedAge !== null && requestedAge <= 12);
 
-    // Detect Indian context
-    const isIndianContext = context?.location?.toLowerCase().includes('india') ||
-                           context?.location?.toLowerCase().includes('delhi') ||
-                           context?.location?.toLowerCase().includes('mumbai') ||
-                           context?.location?.toLowerCase().includes('bengal') ||
-                           messageLower.includes('india') || messageLower.includes('indian');
+    // Detect if user explicitly wants NON-Indian content
+    const wantsNonIndian = messageLower.includes('western author') ||
+                          messageLower.includes('american author') ||
+                          messageLower.includes('british author') ||
+                          messageLower.includes('european author') ||
+                          messageLower.includes('non-indian');
 
     let candidates = candidateSet(message);
 
-    // Boost Indian authors when Indian context is detected
-    if (isIndianContext) {
+    // ALWAYS prioritize Indian authors by default (unless explicitly requesting non-Indian)
+    if (!wantsNonIndian) {
       const indianAuthors = [
+        // Classic Indian authors
         'r.k. narayan', 'r k narayan', 'ruskin bond', 'amitav ghosh',
         'arundhati roy', 'jhumpa lahiri', 'vikram seth', 'anita desai',
         'salman rushdie', 'rohinton mistry', 'kiran desai', 'aravind adiga',
-        'chetan bhagat', 'amish tripathi', 'shashi tharoor', 'premchand',
-        'tagore', 'rabindranath tagore', 'mulk raj anand', 'r.k. laxman'
+        'shashi tharoor', 'premchand', 'tagore', 'rabindranath tagore',
+        'mulk raj anand', 'r.k. laxman',
+        // Contemporary Indian authors
+        'chetan bhagat', 'amish tripathi', 'devdutt pattanaik',
+        'sudha murty', 'manu s pillai', 'shobhaa de', 'anuja chauhan',
+        'anuradha roy', 'manju kapur', 'bharati mukherjee',
+        // Regional Indian authors
+        'vaikom muhammad basheer', 'kamala das', 'o.v. vijayan',
+        'mahasweta devi', 'nirmal verma', 'u.r. ananthamurthy',
+        'girish karnad', 'shyam selvadurai', 'nayantara sahgal'
       ];
 
       // Separate Indian and non-Indian authors
@@ -319,7 +328,9 @@ export async function POST(req: Request) {
         const titleLower = book.title.toLowerCase();
         const isIndianAuthor = indianAuthors.some(name => authorLower.includes(name));
         const isAboutIndia = titleLower.includes('india') || titleLower.includes('delhi') ||
-                            titleLower.includes('mumbai') || titleLower.includes('bengal');
+                            titleLower.includes('mumbai') || titleLower.includes('bengal') ||
+                            titleLower.includes('malgudi') || titleLower.includes('calcutta') ||
+                            titleLower.includes('kolkata') || titleLower.includes('chennai');
 
         if (isIndianAuthor || isAboutIndia) {
           indianBooks.push(book);
@@ -385,10 +396,10 @@ export async function POST(req: Request) {
     }
 
     const contextInfo = context
-      ? `\n\nCurrent Reading Context:\n- Location: ${context.location || 'Not specified'}\n- Season: ${context.season}\n- Time of Day: ${context.timeOfDay}${context.weather ? `\n- Weather: ${context.weather.condition}, ${context.weather.temp}°C` : ''}\n- Reading Mood: ${context.readingMood}${isIndianContext ? '\n- Cultural Context: Indian reader - consider Indian authors, settings, and cultural sensibilities' : ''}\n\nUSE THIS CONTEXT: Factor in the weather, season, and time of day when making recommendations. ${context.weather?.condition.includes('Rain') ? 'Rainy weather pairs well with cozy, introspective reads.' : context.weather?.condition.includes('Sun') || context.weather?.condition.includes('Clear') ? 'Clear weather invites bright, energizing books.' : context.season === 'Winter' ? 'Winter calls for contemplative, intimate reads.' : context.season === 'Summer' ? 'Summer energy suits lighter, adventurous books.' : ''}${isIndianContext ? ' For Indian readers, consider books by Indian authors, books set in India, or themes relevant to Indian culture when appropriate.' : ''}`
+      ? `\n\nCurrent Reading Context:\n- Location: ${context.location || 'Not specified'}\n- Season: ${context.season}\n- Time of Day: ${context.timeOfDay}${context.weather ? `\n- Weather: ${context.weather.condition}, ${context.weather.temp}°C` : ''}\n- Reading Mood: ${context.readingMood}${!wantsNonIndian ? '\n- Cultural Context: Indian reader - prioritize Indian authors, settings, and cultural sensibilities' : ''}\n\nUSE THIS CONTEXT: Factor in the weather, season, and time of day when making recommendations. ${context.weather?.condition.includes('Rain') ? 'Rainy weather pairs well with cozy, introspective reads.' : context.weather?.condition.includes('Sun') || context.weather?.condition.includes('Clear') ? 'Clear weather invites bright, energizing books.' : context.season === 'Winter' ? 'Winter calls for contemplative, intimate reads.' : context.season === 'Summer' ? 'Summer energy suits lighter, adventurous books.' : ''}${!wantsNonIndian ? ' For Indian readers, actively prioritize books by Indian authors, books set in India, or themes relevant to Indian culture.' : ''}`
       : '';
 
-    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? `\n\n⚠️ CRITICAL CONTENT SAFETY - ${requestedAge ? `AGE ${requestedAge}` : 'CHILDREN\'S'} REQUEST:\nYou MUST:\n- ONLY recommend books specifically written for ${requestedAge ? `${requestedAge}-year-olds` : 'children'}\n- NO academic texts, anthologies, grammar books, or advanced literature\n- NO adult authors like Virginia Woolf, Montaigne, Kafka, Joyce\n- ONLY children's books, picture books, early readers, or age-appropriate stories\n- Examples of GOOD suggestions: ${requestedAge && requestedAge <= 8 ? 'Picture books, Dr. Seuss, Eric Carle, simple stories with illustrations' : 'Young adult novels, chapter books, age-appropriate fiction'}\n- Examples of BAD suggestions: Norton Anthology, Essays, Grammar textbooks, Classic literature not written for children` : ''}${isIndianContext ? '\n\n🇮🇳 INDIAN READER CONTEXT - VERY IMPORTANT:\nYou MUST actively prioritize Indian authors and content:\n- FIRST PRIORITY: Indian authors (R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Anita Desai, Salman Rushdie)\n- SECOND PRIORITY: Books set in India or about Indian culture\n- THIRD PRIORITY: South Asian authors and themes\n- Consider Indian festivals (Diwali, Holi), monsoon season, and cultural context\n- Use Indian examples and references when explaining choices\n- DO NOT ignore this context - actively search for Indian authors in your recommendations' : ''}
+    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? `\n\n⚠️ CRITICAL CONTENT SAFETY - ${requestedAge ? `AGE ${requestedAge}` : 'CHILDREN\'S'} REQUEST:\nYou MUST:\n- ONLY recommend books specifically written for ${requestedAge ? `${requestedAge}-year-olds` : 'children'}\n- NO academic texts, anthologies, grammar books, or advanced literature\n- NO adult authors like Virginia Woolf, Montaigne, Kafka, Joyce\n- ONLY children's books, picture books, early readers, or age-appropriate stories\n- Examples of GOOD suggestions: ${requestedAge && requestedAge <= 8 ? 'Picture books, Dr. Seuss, Eric Carle, simple stories with illustrations' : 'Young adult novels, chapter books, age-appropriate fiction'}\n- Examples of BAD suggestions: Norton Anthology, Essays, Grammar textbooks, Classic literature not written for children` : ''}${!wantsNonIndian ? '\n\n🇮🇳 INDIAN READER - DEFAULT PRIORITY:\nYou MUST actively prioritize Indian authors and content:\n- FIRST PRIORITY: Indian authors (R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Anita Desai, Salman Rushdie, Rohinton Mistry, Kiran Desai, Aravind Adiga, Sudha Murty, Devdutt Pattanaik)\n- SECOND PRIORITY: Books set in India or about Indian culture\n- THIRD PRIORITY: South Asian authors and themes\n- Consider Indian festivals (Diwali, Holi), monsoon season, and cultural context\n- Use Indian examples and references when explaining choices\n- CRITICAL: The candidate list has been pre-filtered to prioritize Indian authors (70/30 split) - actively choose from the Indian authors available\n- DO NOT ignore this - Indian authors should appear in majority of your recommendations' : ''}
 
 ANALYZE THE REQUEST FIRST:
 
