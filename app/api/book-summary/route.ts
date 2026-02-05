@@ -5,43 +5,6 @@ export const dynamic = 'force-dynamic';
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
 
-async function searchOpenLibrary(title: string, author?: string) {
-  try {
-    // Build search query
-    const searchQuery = author ? `${title} ${author}` : title;
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=5`;
-
-    const response = await fetch(url);
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    if (!data.docs || data.docs.length === 0) return null;
-
-    // Find the best match - prefer exact title matches
-    const titleLower = title.toLowerCase().trim();
-    let bestMatch = data.docs[0];
-
-    for (const doc of data.docs) {
-      const docTitle = (doc.title || '').toLowerCase().trim();
-      if (docTitle === titleLower || docTitle.includes(titleLower)) {
-        bestMatch = doc;
-        break;
-      }
-    }
-
-    return {
-      title: bestMatch.title || title,
-      author: bestMatch.author_name?.[0] || author || '',
-      publishYear: bestMatch.first_publish_year,
-      isbn: bestMatch.isbn?.[0],
-      subjects: bestMatch.subject?.slice(0, 3) || []
-    };
-  } catch (error) {
-    console.error('Open Library search error:', error);
-    return null;
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -52,31 +15,48 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Title required.' }, { status: 400 });
     }
 
-    // First, search Open Library for accurate book info
-    const bookInfo = await searchOpenLibrary(title, author);
-
-    if (!bookInfo) {
-      return NextResponse.json(
-        {
-          author: author || '',
-          summary: 'A physical book in your reading room.'
-        }
-      );
-    }
-
-    // Use the verified book information from Open Library
-    const verifiedTitle = bookInfo.title;
-    const verifiedAuthor = bookInfo.author;
-
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
-        author: verifiedAuthor,
-        summary: `${verifiedTitle} by ${verifiedAuthor}.`
+        author: author || '',
+        summary: 'A physical book in your reading room.'
       });
     }
 
-    // Now generate a summary using verified information
-    const prompt = `Book: "${verifiedTitle}" by ${verifiedAuthor}${bookInfo.publishYear ? ` (${bookInfo.publishYear})` : ''}${bookInfo.subjects.length > 0 ? `\nSubjects: ${bookInfo.subjects.join(', ')}` : ''}\n\nProvide a beautiful, evocative 2-3 sentence summary that captures the essence and atmosphere of this specific book. Use poetic, gentle language that invites the reader into the world of the story. Focus on themes, mood, and emotional resonance rather than plot details. Avoid spoilers. Keep it under 60 words.\n\nReturn JSON only: {"summary": "..."}\n\nIMPORTANT: Make sure you're describing "${verifiedTitle}" by ${verifiedAuthor}, not a different book with a similar title.`;
+    // Use Claude to identify the book and generate summary
+    const bookQuery = author ? `"${title}" by ${author}` : `"${title}"`;
+    const prompt = `You are a knowledgeable literary expert helping identify and summarize books.
+
+Book search: ${bookQuery}
+
+Task:
+1. Identify the correct book (title and author)
+2. If the author was provided, use that author; if not, determine the most well-known author for this title
+3. Write a beautiful, evocative 2-3 sentence summary that captures the essence and atmosphere of the book
+
+Guidelines for summary:
+- Use poetic, gentle language that invites the reader into the world of the story
+- Focus on themes, mood, and emotional resonance rather than plot details
+- Avoid spoilers
+- Keep it under 60 words
+- Make it feel intimate and personal
+
+Return JSON only with this exact format:
+{
+  "title": "Exact Book Title",
+  "author": "Author Name",
+  "summary": "Your beautiful summary here"
+}
+
+Examples of good summaries:
+- "A tender exploration of memory and loss, where quiet moments become profound revelations about what it means to belong."
+- "Through gentle prose and deep observation, this story illuminates the hidden corners of the human heart with warmth and wisdom."
+
+IMPORTANT: If you cannot identify the book with confidence, return:
+{
+  "title": "${title}",
+  "author": "${author || 'Unknown'}",
+  "summary": "A physical book in your reading room."
+}`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -87,12 +67,12 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 200,
+        max_tokens: 300,
         temperature: 0.4,
         messages: [
           {
             role: 'user',
-            content: `You are a literary curator who writes beautiful, evocative book summaries that capture the soul of a story. Your writing is poetic yet concise, inviting yet precise.\n\n${prompt}`
+            content: prompt
           }
         ]
       })
@@ -100,26 +80,31 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       return NextResponse.json({
-        author: verifiedAuthor,
-        summary: `${verifiedTitle} by ${verifiedAuthor}.`
+        author: author || '',
+        summary: 'A physical book in your reading room.'
       });
     }
 
     const data = await response.json();
     const content = data?.content?.[0]?.text ?? '';
 
-    let parsed: { summary?: string } | null = null;
+    let parsed: { title?: string; author?: string; summary?: string } | null = null;
     try {
       parsed = JSON.parse(content);
     } catch {
       parsed = null;
     }
 
-    const summary = parsed?.summary || `${verifiedTitle} by ${verifiedAuthor}.`;
+    if (!parsed || !parsed.author || !parsed.summary) {
+      return NextResponse.json({
+        author: author || '',
+        summary: 'A physical book in your reading room.'
+      });
+    }
 
     return NextResponse.json({
-      author: verifiedAuthor,
-      summary
+      author: parsed.author,
+      summary: parsed.summary
     });
   } catch (error) {
     console.error('Book summary error:', error);
