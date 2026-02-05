@@ -158,7 +158,7 @@ function SessionSelectContent() {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-2">
                   <h1 className="text-2xl font-medium">{item.title}</h1>
@@ -168,7 +168,7 @@ function SessionSelectContent() {
                   <button
                     onClick={handleAddToLibrary}
                     disabled={isAddingToLibrary}
-                    className={`rounded-xl border px-4 py-2 text-xs font-medium transition-colors ${
+                    className={`shrink-0 rounded-xl border px-4 py-2 text-xs font-medium transition-colors ${
                       isAddingToLibrary
                         ? 'border-green-500/20 bg-green-500/10 text-green-600'
                         : 'border-[var(--border)] text-[var(--text)] hover:border-[var(--text)] hover:bg-[var(--card)]'
@@ -178,9 +178,14 @@ function SessionSelectContent() {
                   </button>
                 )}
                 {isInLibrary && (
-                  <span className="rounded-full bg-green-500/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-green-600">
-                    In Library
-                  </span>
+                  <div className="shrink-0 flex flex-col items-end gap-2">
+                    <span className="rounded-full bg-green-500/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-green-600">
+                      In Your Library
+                    </span>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
+                      Ready to read
+                    </p>
+                  </div>
                 )}
               </div>
               <p className="text-sm">{item.why_this_book}</p>

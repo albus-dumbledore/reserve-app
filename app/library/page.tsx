@@ -193,45 +193,85 @@ export default function LibraryPage() {
                   No books available for this edition yet.
                 </div>
               ) : null}
-              {visibleBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-soft transition hover:border-[var(--text)]"
-                >
-                  <div className="space-y-3">
-                    <Link
-                      href={`/session/select?itemId=${book.id}`}
-                      className="block space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <h2 className="text-lg font-medium hover:underline">{book.title}</h2>
-                          <p className="text-sm text-[var(--muted)]">{book.author}</p>
+              {visibleBooks.map((book) => {
+                const isInUserLibrary = userLibrary.value.some((userBook) => userBook.id === book.id);
+
+                const handleAddToLibrary = () => {
+                  const newBook: UserLibraryBook = {
+                    id: book.id,
+                    title: book.title,
+                    author: book.author,
+                    summary: book.why_this_book || 'From monthly edition',
+                    addedAt: new Date().toISOString(),
+                    isCurrent: false
+                  };
+                  userLibrary.setValue([...userLibrary.value, newBook]);
+                };
+
+                return (
+                  <div
+                    key={book.id}
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-soft transition hover:border-[var(--text)]"
+                  >
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2 className="text-lg font-medium">{book.title}</h2>
+                              {isInUserLibrary && (
+                                <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-green-600">
+                                  In Library
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-[var(--muted)]">{book.author}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                              {book.estimated_sessions} sessions
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                          {book.estimated_sessions} sessions
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                          Why this book
+                        <div className="space-y-1">
+                          <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                            Why this book
+                          </p>
+                          <p className="text-sm">{book.why_this_book}</p>
+                        </div>
+                        <p className="text-sm text-[var(--muted)]">
+                          Best for: {book.best_context}
                         </p>
-                        <p className="text-sm">{book.why_this_book}</p>
                       </div>
-                      <p className="text-sm text-[var(--muted)]">
-                        Best for: {book.best_context}
-                      </p>
-                    </Link>
-                    <div className="border-t border-[var(--border)] pt-3">
-                      <BookAvailability
-                        bookTitle={book.title}
-                        bookAuthor={book.author}
-                        bookId={book.id}
-                      />
-                    </div>
+
+                      {/* Action button: Add to Library or Start Session */}
+                      {isInUserLibrary ? (
+                        <Link
+                          href={`/session/select?itemId=${book.id}`}
+                          className="block w-full rounded-xl border border-[var(--text)] bg-[var(--text)] px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.2em] text-[var(--bg)] hover:opacity-90 transition-opacity"
+                        >
+                          Start Session
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={handleAddToLibrary}
+                          className="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-xs font-medium uppercase tracking-[0.2em] text-[var(--text)] hover:border-[var(--text)] hover:bg-[var(--card)] transition-colors"
+                        >
+                          + Add to Library to Read
+                        </button>
+                      )}
+
+                      <div className="border-t border-[var(--border)] pt-3">
+                        <BookAvailability
+                          bookTitle={book.title}
+                          bookAuthor={book.author}
+                          bookId={book.id}
+                        />
+                      </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {hasMore && !loadingEdition && (
                 <button
@@ -272,27 +312,32 @@ export default function LibraryPage() {
                     className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-soft transition hover:border-[var(--text)]"
                   >
                     <div className="space-y-3">
-                      <Link
-                        href={`/session/select?itemId=${book.id}`}
-                        className="block space-y-2"
-                      >
+                      <div className="space-y-2">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h2 className="text-lg font-medium hover:underline">{book.title}</h2>
-                              {book.isCurrent ? (
-                                <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-green-600">
-                                  Current
-                                </span>
+                            <Link href={`/session/select?itemId=${book.id}`}>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h2 className="text-lg font-medium hover:underline">{book.title}</h2>
+                                {book.isCurrent ? (
+                                  <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-green-600">
+                                    Current
+                                  </span>
+                                ) : null}
+                              </div>
+                              {book.author ? (
+                                <p className="text-sm text-[var(--muted)] mt-1">{book.author}</p>
                               ) : null}
-                            </div>
-                            {book.author ? (
-                              <p className="text-sm text-[var(--muted)] mt-1">{book.author}</p>
-                            ) : null}
+                              <p className="text-sm mt-2">{book.summary}</p>
+                            </Link>
                           </div>
+                          <Link
+                            href={`/session/select?itemId=${book.id}`}
+                            className="shrink-0 rounded-xl border border-[var(--text)] bg-[var(--text)] px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-[var(--bg)] hover:opacity-90 transition-opacity"
+                          >
+                            Start Session
+                          </Link>
                         </div>
-                        <p className="text-sm">{book.summary}</p>
-                      </Link>
+                      </div>
                       {book.author && (
                         <div className="border-t border-[var(--border)] pt-3">
                           <BookAvailability

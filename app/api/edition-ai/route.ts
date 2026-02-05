@@ -34,17 +34,42 @@ export async function POST(req: Request) {
       return NextResponse.json(cachedEdition);
     }
 
-    // Prepare book catalog for AI (sample of diverse books to choose from)
-    const catalogSample = bookCatalog
-      .filter(book => book.title && book.author)
-      .slice(0, 100) // Use 100 books to give AI more variety for 20 selections
-      .map(book => ({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        genres: book.genres.slice(0, 2), // Limit to 2 genres
-        moods: book.moods.slice(0, 2) // Limit to 2 moods
-      }));
+    // Indian author detection
+    const indianAuthors = [
+      'r.k. narayan', 'r k narayan', 'ruskin bond', 'amitav ghosh',
+      'arundhati roy', 'jhumpa lahiri', 'vikram seth', 'anita desai',
+      'salman rushdie', 'rohinton mistry', 'kiran desai', 'aravind adiga',
+      'shashi tharoor', 'premchand', 'tagore', 'rabindranath tagore',
+      'mulk raj anand', 'r.k. laxman', 'chetan bhagat', 'amish tripathi',
+      'devdutt pattanaik', 'sudha murty', 'manu s pillai', 'shobhaa de',
+      'anuja chauhan', 'anuradha roy', 'manju kapur', 'bharati mukherjee',
+      'vaikom muhammad basheer', 'kamala das', 'o.v. vijayan',
+      'mahasweta devi', 'nirmal verma', 'u.r. ananthamurthy',
+      'girish karnad', 'shyam selvadurai', 'nayantara sahgal', 'vālmīki',
+      'vatsyāyana', 'kalidasa', 'tulsidas', 'kabir', 'mirabai'
+    ];
+
+    const isIndianAuthor = (authorName: string) => {
+      const authorLower = authorName.toLowerCase();
+      return indianAuthors.some(name => authorLower.includes(name));
+    };
+
+    // Prepare book catalog with Indian author priority
+    const validBooks = bookCatalog.filter(book => book.title && book.author);
+    const indianBooks = validBooks.filter(book => isIndianAuthor(book.author));
+    const internationalBooks = validBooks.filter(book => !isIndianAuthor(book.author));
+
+    // Create sample: 60 Indian + 40 International = 100 books
+    const catalogSample = [
+      ...indianBooks.slice(0, 60),
+      ...internationalBooks.slice(0, 40)
+    ].map(book => ({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      genres: book.genres.slice(0, 2),
+      moods: book.moods.slice(0, 2)
+    }));
 
     // Build context prompt
     const contextPrompt = context
@@ -66,11 +91,12 @@ Current Context:
 
 ${contextPrompt}
 
-🇮🇳 INDIAN READER PRIORITY:
-- Prioritize Indian authors when selecting books (aim for at least 50-60% Indian authors)
-- Include books that resonate with Indian cultural context and seasons
-- Balance contemporary Indian voices with classic Indian literature
-- When selecting international books, consider their relevance to Indian readers
+🇮🇳 CRITICAL REQUIREMENT - INDIAN READER PRIORITY:
+- You MUST select AT LEAST 12 Indian authors out of 20 books (60% minimum)
+- Indian authors include: R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Tagore, Premchand, Sudha Murty, Devdutt Pattanaik, Chetan Bhagat, Amish Tripathi, Vālmīki, Vatsyāyana, and others
+- Balance classic Indian literature (Ramayana, Vedas, Tagore) with contemporary voices (Ghosh, Roy, Adiga)
+- The remaining 8 books can be international authors, but choose ones relevant to Indian readers
+- This is NON-NEGOTIABLE - failing to meet 60% Indian authors will result in rejection
 
 IMPORTANT - Context-Driven Curation:
 Based on the current month, season, weather, and location above, you must:
@@ -173,6 +199,57 @@ Respond with ONLY valid JSON in this exact format (no markdown, no code blocks):
       console.error('Failed to parse AI response:', parseError);
       console.error('Response text:', responseText);
       throw new Error('Invalid AI response format');
+    }
+
+    // Enforce Indian author requirement (60% minimum)
+    const selectedBooks = aiResponse.books;
+    const indianBookCount = selectedBooks.filter(book =>
+      isIndianAuthor(book.author)
+    ).length;
+    const indianPercentage = (indianBookCount / selectedBooks.length) * 100;
+
+    console.log(`📊 Indian author representation: ${indianBookCount}/${selectedBooks.length} (${indianPercentage.toFixed(1)}%)`);
+
+    // If below 60%, log warning and enforce
+    if (indianPercentage < 60) {
+      console.warn(`⚠️ WARNING: AI only selected ${indianPercentage.toFixed(1)}% Indian authors. Enforcing 60% minimum...`);
+
+      // Separate current selections
+      const selectedIndian = selectedBooks.filter(book => isIndianAuthor(book.author));
+      const selectedInternational = selectedBooks.filter(book => !isIndianAuthor(book.author));
+
+      // Calculate how many more Indian books we need
+      const targetIndian = Math.ceil(selectedBooks.length * 0.6); // 60%
+      const neededIndian = targetIndian - selectedIndian.length;
+
+      if (neededIndian > 0 && indianBooks.length > selectedIndian.length) {
+        // Get additional Indian books that weren't selected
+        const selectedIds = new Set(selectedBooks.map(b => b.id));
+        const availableIndian = indianBooks
+          .filter(book => !selectedIds.has(book.id))
+          .slice(0, neededIndian)
+          .map(book => ({
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            why_this_book: `A thoughtful ${book.genres[0] || 'literary'} work that fits the contemplative mood of the season.`,
+            best_context: 'quiet reading moments',
+            estimated_sessions: 5,
+            genres: book.genres.slice(0, 2)
+          } as EditionBook));
+
+        // Replace international books with Indian ones
+        const finalBooks = [
+          ...selectedIndian,
+          ...availableIndian,
+          ...selectedInternational.slice(0, selectedBooks.length - targetIndian)
+        ];
+
+        aiResponse.books = finalBooks;
+        console.log(`✅ Adjusted to ${targetIndian}/${finalBooks.length} Indian authors (${((targetIndian/finalBooks.length)*100).toFixed(1)}%)`);
+      }
+    } else {
+      console.log(`✅ Indian author requirement met: ${indianPercentage.toFixed(1)}%`);
     }
 
     // Build response with current month
