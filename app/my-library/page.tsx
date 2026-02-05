@@ -9,14 +9,20 @@ import { STORAGE_KEYS } from '@/lib/storage';
 import { makeId, formatMonthYear, groupByMonth } from '@/lib/utils';
 import type { UserLibraryBook } from '@/lib/types';
 
+interface BookOption {
+  title: string;
+  author: string;
+  summary: string;
+  year?: number | null;
+}
+
 export default function MyLibraryPage() {
   const library = useStoredState<UserLibraryBook[]>(STORAGE_KEYS.userLibrary, []);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [fetchedSummary, setFetchedSummary] = useState('');
-  const [fetchedAuthor, setFetchedAuthor] = useState('');
-  const [hasFetched, setHasFetched] = useState(false);
+  const [bookOptions, setBookOptions] = useState<BookOption[]>([]);
+  const [selectedBook, setSelectedBook] = useState<BookOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -35,7 +41,8 @@ export default function MyLibraryPage() {
     if (!trimmedTitle || loading) return;
     setError('');
     setLoading(true);
-    setHasFetched(false);
+    setBookOptions([]);
+    setSelectedBook(null);
 
     try {
       const response = await fetch('/api/book-summary', {
@@ -45,34 +52,42 @@ export default function MyLibraryPage() {
       });
 
       if (response.ok) {
-        const payload = (await response.json()) as { author: string; summary: string };
-        setFetchedAuthor(payload.author || '');
-        setFetchedSummary(payload.summary || 'A physical book in your reading room.');
-        setAuthor(payload.author || author);
-        setHasFetched(true);
+        const payload = (await response.json()) as { books: BookOption[] };
+        const books = payload.books || [];
+        setBookOptions(books);
+        // Auto-select first option if only one result
+        if (books.length === 1) {
+          setSelectedBook(books[0]);
+          setAuthor(books[0].author);
+        }
       } else {
-        setFetchedSummary('A physical book in your reading room.');
-        setFetchedAuthor('');
-        setHasFetched(true);
+        setBookOptions([{
+          title: trimmedTitle,
+          author: author.trim() || '',
+          summary: 'A physical book in your reading room.',
+          year: null
+        }]);
       }
     } catch (err) {
-      setFetchedSummary('A physical book in your reading room.');
-      setFetchedAuthor('');
-      setHasFetched(true);
+      setBookOptions([{
+        title: trimmedTitle,
+        author: author.trim() || '',
+        summary: 'A physical book in your reading room.',
+        year: null
+      }]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAdd = async () => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle || !hasFetched) return;
+    if (!selectedBook) return;
 
     const nextBook: UserLibraryBook = {
       id: makeId(),
-      title: trimmedTitle,
-      author: author.trim() || undefined,
-      summary: fetchedSummary,
+      title: selectedBook.title,
+      author: selectedBook.author || undefined,
+      summary: selectedBook.summary,
       addedAt: new Date().toISOString(),
       isCurrent: true
     };
@@ -84,9 +99,8 @@ export default function MyLibraryPage() {
     library.setValue(updated);
     setTitle('');
     setAuthor('');
-    setFetchedSummary('');
-    setFetchedAuthor('');
-    setHasFetched(false);
+    setBookOptions([]);
+    setSelectedBook(null);
     setShowForm(false);
   };
 
@@ -108,9 +122,8 @@ export default function MyLibraryPage() {
     setShowForm(false);
     setTitle('');
     setAuthor('');
-    setFetchedSummary('');
-    setFetchedAuthor('');
-    setHasFetched(false);
+    setBookOptions([]);
+    setSelectedBook(null);
     setError('');
   };
 
@@ -166,11 +179,23 @@ export default function MyLibraryPage() {
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm outline-none focus:border-[var(--text)]"
-                    placeholder="The Remains of the Day"
+                    placeholder="Focus on What Matters"
                   />
                 </div>
 
-                {!hasFetched ? (
+                <div className="space-y-1">
+                  <label className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                    Author (optional)
+                  </label>
+                  <input
+                    value={author}
+                    onChange={(event) => setAuthor(event.target.value)}
+                    className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm outline-none focus:border-[var(--text)]"
+                    placeholder="Darius Foroux"
+                  />
+                </div>
+
+                {bookOptions.length === 0 ? (
                   <button
                     onClick={handleFetchDetails}
                     disabled={loading || !title.trim()}
@@ -180,34 +205,38 @@ export default function MyLibraryPage() {
                         : 'border border-[var(--text)] bg-[var(--text)] text-[var(--bg)]'
                     }`}
                   >
-                    {loading ? 'Fetching details…' : 'Fetch Details'}
+                    {loading ? 'Searching…' : 'Search Books'}
                   </button>
                 ) : (
                   <>
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 space-y-2">
+                    <div className="space-y-2">
                       <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                        Found book details
+                        Select your book ({bookOptions.length} found)
                       </p>
-                      {fetchedAuthor ? (
-                        <p className="text-sm">
-                          <span className="font-medium">Author:</span> {fetchedAuthor}
-                        </p>
-                      ) : null}
-                      <p className="text-sm">
-                        <span className="font-medium">Summary:</span> {fetchedSummary}
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
-                        Author (optional)
-                      </label>
-                      <input
-                        value={author}
-                        onChange={(event) => setAuthor(event.target.value)}
-                        className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm outline-none focus:border-[var(--text)]"
-                        placeholder="Kazuo Ishiguro"
-                      />
+                      {bookOptions.map((book, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedBook(book)}
+                          className={`w-full rounded-xl border p-4 text-left transition-colors ${
+                            selectedBook === book
+                              ? 'border-[var(--text)] bg-[var(--text)]/5'
+                              : 'border-[var(--border)] hover:border-[var(--text)]'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium">{book.title}</p>
+                              {selectedBook === book ? (
+                                <span className="text-xs text-[var(--text)]">✓</span>
+                              ) : null}
+                            </div>
+                            <p className="text-sm text-[var(--muted)]">
+                              {book.author}{book.year ? ` (${book.year})` : ''}
+                            </p>
+                            <p className="text-sm">{book.summary}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
 
                     <div className="flex gap-3">
@@ -219,7 +248,12 @@ export default function MyLibraryPage() {
                       </button>
                       <button
                         onClick={handleAdd}
-                        className="flex-1 rounded-xl border border-[var(--text)] bg-[var(--text)] px-4 py-3 text-sm font-medium text-[var(--bg)]"
+                        disabled={!selectedBook}
+                        className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium ${
+                          selectedBook
+                            ? 'border border-[var(--text)] bg-[var(--text)] text-[var(--bg)]'
+                            : 'border border-[var(--border)] text-[var(--muted)]'
+                        }`}
                       >
                         Save Book
                       </button>
