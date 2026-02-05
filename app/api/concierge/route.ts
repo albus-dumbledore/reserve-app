@@ -434,8 +434,8 @@ Important:
         }
       });
 
-      // Prioritize Indian content: 70% Indian authors, 30% others
-      const indianCount = Math.ceil(candidates.length * 0.7);
+      // Balanced representation: 50% Indian authors, 50% international
+      const indianCount = Math.ceil(candidates.length * 0.5);
       candidates = [
         ...indianBooks.slice(0, indianCount),
         ...otherBooks.slice(0, candidates.length - indianCount)

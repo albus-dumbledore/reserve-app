@@ -59,10 +59,10 @@ export async function POST(req: Request) {
     const indianBooks = validBooks.filter(book => isIndianAuthor(book.author));
     const internationalBooks = validBooks.filter(book => !isIndianAuthor(book.author));
 
-    // Create sample: 60 Indian + 40 International = 100 books
+    // Create sample: 50 Indian + 50 International = 100 books (balanced)
     const catalogSample = [
-      ...indianBooks.slice(0, 60),
-      ...internationalBooks.slice(0, 40)
+      ...indianBooks.slice(0, 50),
+      ...internationalBooks.slice(0, 50)
     ].map(book => ({
       id: book.id,
       title: book.title,
@@ -91,12 +91,12 @@ Current Context:
 
 ${contextPrompt}
 
-🇮🇳 CRITICAL REQUIREMENT - INDIAN READER PRIORITY:
-- You MUST select AT LEAST 12 Indian authors out of 20 books (60% minimum)
+🇮🇳 INDIAN READER - BALANCED CURATION:
+- Aim for a balanced selection with approximately 10 Indian authors out of 20 books (around 50%)
 - Indian authors include: R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Tagore, Premchand, Sudha Murty, Devdutt Pattanaik, Chetan Bhagat, Amish Tripathi, Vālmīki, Vatsyāyana, and others
 - Balance classic Indian literature (Ramayana, Vedas, Tagore) with contemporary voices (Ghosh, Roy, Adiga)
-- The remaining 8 books can be international authors, but choose ones relevant to Indian readers
-- This is NON-NEGOTIABLE - failing to meet 60% Indian authors will result in rejection
+- The remaining ~10 books should be diverse international authors
+- Acceptable range: 8-12 Indian authors (40-60%)
 
 IMPORTANT - Context-Driven Curation:
 Based on the current month, season, weather, and location above, you must:
@@ -201,7 +201,7 @@ Respond with ONLY valid JSON in this exact format (no markdown, no code blocks):
       throw new Error('Invalid AI response format');
     }
 
-    // Enforce Indian author requirement (60% minimum)
+    // Enforce Indian author requirement (40% minimum for balance)
     const selectedBooks = aiResponse.books;
     const indianBookCount = selectedBooks.filter(book =>
       isIndianAuthor(book.author)
@@ -210,16 +210,16 @@ Respond with ONLY valid JSON in this exact format (no markdown, no code blocks):
 
     console.log(`📊 Indian author representation: ${indianBookCount}/${selectedBooks.length} (${indianPercentage.toFixed(1)}%)`);
 
-    // If below 60%, log warning and enforce
-    if (indianPercentage < 60) {
-      console.warn(`⚠️ WARNING: AI only selected ${indianPercentage.toFixed(1)}% Indian authors. Enforcing 60% minimum...`);
+    // If below 40%, log warning and enforce
+    if (indianPercentage < 40) {
+      console.warn(`⚠️ WARNING: AI only selected ${indianPercentage.toFixed(1)}% Indian authors. Enforcing 40% minimum...`);
 
       // Separate current selections
       const selectedIndian = selectedBooks.filter(book => isIndianAuthor(book.author));
       const selectedInternational = selectedBooks.filter(book => !isIndianAuthor(book.author));
 
       // Calculate how many more Indian books we need
-      const targetIndian = Math.ceil(selectedBooks.length * 0.6); // 60%
+      const targetIndian = Math.ceil(selectedBooks.length * 0.4); // 40% minimum
       const neededIndian = targetIndian - selectedIndian.length;
 
       if (neededIndian > 0 && indianBooks.length > selectedIndian.length) {
