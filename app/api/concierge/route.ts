@@ -291,6 +291,16 @@ export async function POST(req: Request) {
                                 messageLower.includes('age appropriate') ||
                                 (requestedAge !== null && requestedAge <= 12);
 
+    // Detect if we should use Discovery Mode (Claude finds books outside catalog)
+    const useDiscoveryMode = isChildrensRequest || // Children's books often not in catalog
+                            messageLower.includes('teach') || // Educational queries
+                            messageLower.includes('learn about') ||
+                            messageLower.includes('explain') ||
+                            messageLower.includes('finance') ||
+                            messageLower.includes('money') ||
+                            messageLower.includes('science') ||
+                            messageLower.includes('history of');
+
     // Detect if user explicitly wants NON-Indian content
     const wantsNonIndian = messageLower.includes('western author') ||
                           messageLower.includes('american author') ||
@@ -298,6 +308,91 @@ export async function POST(req: Request) {
                           messageLower.includes('european author') ||
                           messageLower.includes('non-indian');
 
+    // DISCOVERY MODE: Use Claude to find books outside catalog for specialized queries
+    if (useDiscoveryMode && process.env.ANTHROPIC_API_KEY) {
+      const discoveryPrompt = `You are a knowledgeable book expert helping find books for readers.
+
+User's request: "${message}"${requestedAge ? `\nAge: ${requestedAge} years old` : ''}
+
+Task: Recommend 3 specific, real books that perfectly match this request.
+
+${isChildrensRequest ? `⚠️ CHILDREN'S REQUEST (Age ${requestedAge || 'unknown'}):\n- ONLY children's books appropriate for this age\n- Picture books, chapter books, or early readers\n- NO adult books, textbooks, or advanced literature\n` : ''}
+${!wantsNonIndian ? `🇮🇳 INDIAN READER:\n- Prioritize Indian authors when possible\n- Include books relevant to Indian context\n` : ''}
+
+For each book provide:
+1. Exact title and author
+2. Why this book is perfect for their specific need (1-2 sentences)
+
+Return JSON with this format:
+{
+  "title": "For your need",
+  "books": [
+    {
+      "title": "Book Title",
+      "author": "Author Name",
+      "rationale": "Why this book fits their need perfectly",
+      "year": 2020
+    }
+  ]
+}
+
+Important:
+- Recommend REAL books that exist
+- Match the specific need (teaching concepts, age-appropriate, etc.)
+- Use warm, personal language in rationales
+- Return 3 books maximum`;
+
+      try {
+        const discoveryResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            max_tokens: 1000,
+            temperature: 0.7,
+            messages: [{ role: 'user', content: discoveryPrompt }]
+          })
+        });
+
+        if (discoveryResponse.ok) {
+          const data = await discoveryResponse.json();
+          const content = data?.content?.[0]?.text ?? '';
+
+          try {
+            const parsed = JSON.parse(content) as {
+              title: string;
+              books: Array<{ title: string; author: string; rationale: string; year?: number }>;
+            };
+
+            if (parsed.books && Array.isArray(parsed.books)) {
+              // Convert to concierge format
+              const suggestions = parsed.books.map((book) => ({
+                bookId: `discovered-${book.title.toLowerCase().replace(/\s+/g, '-')}`,
+                title: book.title,
+                author: book.author,
+                rationale: book.rationale
+              }));
+
+              return NextResponse.json({
+                title: parsed.title || 'Handpicked for you',
+                suggestions,
+                discoveryMode: true
+              });
+            }
+          } catch (parseError) {
+            console.error('Discovery mode parse error:', parseError);
+          }
+        }
+      } catch (discoveryError) {
+        console.error('Discovery mode error:', discoveryError);
+      }
+    }
+
+    // CATALOG MODE: Fall back to catalog-based recommendations
     let candidates = candidateSet(message);
 
     // ALWAYS prioritize Indian authors by default (unless explicitly requesting non-Indian)
