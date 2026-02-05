@@ -51,6 +51,11 @@ Guidelines for summaries:
 - Avoid spoilers
 - Make it intimate and personal
 
+CRITICAL - Return format:
+- Return ONLY valid JSON, no explanatory text before or after
+- No markdown code blocks, no "Here are the books", just pure JSON
+- Start with [ and end with ]
+
 Return JSON array with this exact format:
 [
   {
@@ -67,6 +72,7 @@ Important:
 - Order by relevance (exact title match first, then similar books)
 - Include publication year if known (otherwise use null)
 - If you can only find 1 book, return array with 1 item
+- RETURN ONLY THE JSON ARRAY, NOTHING ELSE
 
 Example summaries:
 - "A tender exploration of memory and loss, where quiet moments become profound revelations."
@@ -108,10 +114,22 @@ Example summaries:
 
     let parsed: Array<{ title: string; author: string; summary: string; year?: number | null }> | null = null;
     try {
+      // Try direct JSON parse first
       parsed = JSON.parse(content);
     } catch (parseError) {
-      console.error('Failed to parse book search response:', content);
-      parsed = null;
+      // If that fails, try to extract JSON array from text
+      try {
+        const jsonMatch = content.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          console.error('Failed to parse book search response:', content);
+          parsed = null;
+        }
+      } catch {
+        console.error('Failed to extract JSON from response:', content);
+        parsed = null;
+      }
     }
 
     if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
