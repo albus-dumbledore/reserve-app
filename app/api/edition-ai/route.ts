@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { bookCatalog } from '@/lib/books';
-import type { EditionBook, ReadingContext } from '@/lib/types';
+import type { EditionBook } from '@/lib/types';
+import type { ReadingContext } from '@/lib/context';
 
 export const runtime = 'nodejs';
 
