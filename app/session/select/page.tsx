@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AccessGate from '@/app/components/AccessGate';
 import Container from '@/app/components/Container';
@@ -21,7 +21,7 @@ interface AIEdition {
   month: string;
 }
 
-export default function SessionSelectPage() {
+function SessionSelectContent() {
   const router = useRouter();
   const params = useSearchParams();
   const itemId = params.get('itemId') ?? '';
@@ -258,5 +258,23 @@ export default function SessionSelectPage() {
         )}
       </Container>
     </AccessGate>
+  );
+}
+
+export default function SessionSelectPage() {
+  return (
+    <Suspense fallback={
+      <AccessGate>
+        <Container size="md">
+          <TopNav title="Session" backHref="/library" />
+          <div className="space-y-4">
+            <div className="h-8 w-3/4 animate-pulse rounded bg-[var(--card)]"></div>
+            <div className="h-4 w-1/2 animate-pulse rounded bg-[var(--card)]"></div>
+          </div>
+        </Container>
+      </AccessGate>
+    }>
+      <SessionSelectContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getReadingContext } from '@/lib/context';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // OpenWeatherMap API (free tier)
 // Sign up at: https://openweathermap.org/api
