@@ -33,10 +33,16 @@ Book search: ${bookQuery}
 - Include books available in India or relevant to Indian readers
 - If the search clearly indicates a Western/international book, find that book but also suggest similar Indian alternatives
 
+IMPORTANT - FLEXIBLE MATCHING:
+- The user may have entered incorrect author information
+- ALWAYS prioritize matching the TITLE first, even if the author doesn't match exactly
+- If "${title}" exists by a different author than "${author || 'provided'}", INCLUDE IT as the first result
+- Then show other books with similar titles or themes
+
 Task: Find the top 5 most likely books that match this search query.
 
 For each book:
-1. Provide the exact title and author name
+1. Provide the exact title and author name (CORRECT author, even if user got it wrong)
 2. Write a beautiful, evocative 1-2 sentence summary (under 50 words)
 
 Guidelines for summaries:
@@ -49,7 +55,7 @@ Return JSON array with this exact format:
 [
   {
     "title": "Exact Book Title",
-    "author": "Author Name",
+    "author": "Actual Author Name",
     "summary": "Beautiful summary here",
     "year": 2020
   }
@@ -57,8 +63,8 @@ Return JSON array with this exact format:
 
 Important:
 - Return 3-5 books maximum
-- If author was provided, prioritize books by that author
-- Order by relevance (most likely match first)
+- TITLE match is more important than author match
+- Order by relevance (exact title match first, then similar books)
 - Include publication year if known (otherwise use null)
 - If you can only find 1 book, return array with 1 item
 
