@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import '@flaticon/flaticon-uicons/css/all/all.css';
+
+:root {
+  color-scheme: light;
+  --bg: #f8f6f2;
+  --text: #1d1b16;
+  --muted: #6d655c;
+  --border: #ded8cf;
+  --card: #fbfaf7;
+  --accent: #2a2722;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #12110f;
+  --text: #f3efe9;
+  --muted: #a59c90;
+  --border: #2a2620;
+  --card: #181613;
+  --accent: #f3efe9;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+  letter-spacing: 0.01em;
+  min-height: 100vh;
+}
+
+main {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(60, 48, 36, 0.2);
+}
+
+.dark ::selection {
+  background: rgba(225, 219, 207, 0.2);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.reading-text {
+  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+input[type='range'] {
+  accent-color: var(--text);
+}

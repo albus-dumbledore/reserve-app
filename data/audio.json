@@ -1,0 +1,62 @@
+[
+  {
+    "id": "cafe-wood",
+    "title": "Cafe Wood",
+    "file": "/audio/cafe-wood.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "velvet-afternoon",
+    "title": "Velvet Afternoon",
+    "file": "/audio/velvet-afternoon.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "paper-rustle",
+    "title": "Paper Rustle",
+    "file": "/audio/paper-rustle.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "late-espresso",
+    "title": "Late Espresso",
+    "file": "/audio/late-espresso.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "window-rain",
+    "title": "Window Rain",
+    "file": "/audio/window-rain.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "soft-hum",
+    "title": "Soft Hum",
+    "file": "/audio/soft-hum.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "amber-air",
+    "title": "Amber Air",
+    "file": "/audio/amber-air.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "quiet-brew",
+    "title": "Quiet Brew",
+    "file": "/audio/quiet-brew.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "hushed-steps",
+    "title": "Hushed Steps",
+    "file": "/audio/hushed-steps.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  },
+  {
+    "id": "harbor-light",
+    "title": "Harbor Light",
+    "file": "/audio/harbor-light.wav",
+    "attribution": "Original ambient loop generated for Reservé."
+  }
+]

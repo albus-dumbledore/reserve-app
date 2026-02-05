@@ -1,0 +1,33 @@
+{
+  "name": "reserve",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "build:books": "node scripts/build-books-api.mjs",
+    "build:books:api": "node scripts/build-books-api.mjs",
+    "build:books:dumps": "node scripts/build-books.mjs",
+    "build:quotes": "node scripts/build-quotes.mjs"
+  },
+  "dependencies": {
+    "@flaticon/flaticon-uicons": "^3.3.1",
+    "next": "14.2.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.2.66",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.4"
+  }
+}

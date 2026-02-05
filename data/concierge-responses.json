@@ -1,0 +1,76 @@
+{
+  "responses": [
+    {
+      "intent": "next_book",
+      "title": "A gentle next step",
+      "suggestions": [
+        {
+          "bookId": "paper-rooms",
+          "rationale": "A calm, room-by-room meditation that rewards slow, repeated sessions."
+        },
+        {
+          "bookId": "the-soft-index",
+          "rationale": "Short observations you can revisit between longer reads."
+        },
+        {
+          "bookId": "river-notes",
+          "rationale": "Steady narrative flow, ideal for a quiet multi-session rhythm."
+        }
+      ]
+    },
+    {
+      "intent": "light",
+      "title": "Something lighter",
+      "suggestions": [
+        {
+          "bookId": "the-inventory-of-light",
+          "rationale": "Brief essays that settle quickly and leave a soft aftertaste."
+        },
+        {
+          "bookId": "the-soft-index",
+          "rationale": "Small observations that fit well into short sessions."
+        },
+        {
+          "bookId": "atlas-of-quiet",
+          "rationale": "Travelogue structure makes it easy to pause and return."
+        }
+      ]
+    },
+    {
+      "intent": "heavy",
+      "title": "Something deeper",
+      "suggestions": [
+        {
+          "bookId": "the-green-chair",
+          "rationale": "A longer narrative that benefits from longer, focused sessions."
+        },
+        {
+          "bookId": "river-notes",
+          "rationale": "Layered scenes that build gently across multiple sittings."
+        },
+        {
+          "bookId": "paper-rooms",
+          "rationale": "Dense with reflection, best taken slowly and deliberately."
+        }
+      ]
+    },
+    {
+      "intent": "travel",
+      "title": "Travel-friendly picks",
+      "suggestions": [
+        {
+          "bookId": "the-inventory-of-light",
+          "rationale": "Short pieces that fit well into transit windows."
+        },
+        {
+          "bookId": "atlas-of-quiet",
+          "rationale": "A travelogue that pairs naturally with movement and pause."
+        },
+        {
+          "bookId": "the-soft-index",
+          "rationale": "Light, flexible chapters for waiting rooms or hotel nights."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "id": "2026-02",
+  "title": "February Edition",
+  "start_date": "2026-02-01",
+  "end_date": "2026-02-28",
+  "editorial_note": {
+    "title": "For the patient reader",
+    "body": "February is for deliberate reading: shorter days, longer shadows, and books that ask to be lived with, not rushed. This list stays close to the quietly luminous, the reflective, and the book you keep on the table for a week or two."
+  },
+  "books": [
+    {
+      "id": "the-remains-of-the-day",
+      "title": "The Remains of the Day",
+      "author": "Kazuo Ishiguro",
+      "why_this_book": "A restrained, luminous novel that reveals its depth gradually, ideal for slow, attentive sessions.",
+      "best_context": "Quiet late evenings when the room is still.",
+      "estimated_sessions": 6,
+      "genres": [
+        "literary",
+        "classics"
+      ]
+    },
+    {
+      "id": "the-housekeeper-and-the-professor",
+      "title": "The Housekeeper and the Professor",
+      "author": "Yoko Ogawa",
+      "why_this_book": "A compact, tender novel with a steady rhythm that suits shorter, repeated sittings.",
+      "best_context": "Early mornings or a calm afternoon break.",
+      "estimated_sessions": 4,
+      "genres": [
+        "literary",
+        "classics"
+      ]
+    },
+    {
+      "id": "pilgrim-at-tinker-creek",
+      "title": "Pilgrim at Tinker Creek",
+      "author": "Annie Dillard",
+      "why_this_book": "An exquisite book of attention, best read in small portions that invite pause and reflection.",
+      "best_context": "By a window with natural light.",
+      "estimated_sessions": 6,
+      "genres": [
+        "essays",
+        "nature",
+        "classics"
+      ]
+    },
+    {
+      "id": "the-snow-leopard",
+      "title": "The Snow Leopard",
+      "author": "Peter Matthiessen",
+      "why_this_book": "A winter ascent that blends travel, grief, and quiet observation, rewarding steady sessions.",
+      "best_context": "Longer weekend sessions or travel days.",
+      "estimated_sessions": 6,
+      "genres": [
+        "travel",
+        "memoir",
+        "nature"
+      ]
+    },
+    {
+      "id": "the-death-of-ivan-ilyich",
+      "title": "The Death of Ivan Ilyich",
+      "author": "Leo Tolstoy",
+      "why_this_book": "A brief, profound novella that lingers, suited to one or two deep sittings.",
+      "best_context": "A single focused session in the late evening.",
+      "estimated_sessions": 3,
+      "genres": [
+        "classics",
+        "philosophy",
+        "short-stories"
+      ]
+    },
+    {
+      "id": "the-moviegoer",
+      "title": "The Moviegoer",
+      "author": "Walker Percy",
+      "why_this_book": "A quiet, wry novel that explores attention and meaning in everyday life.",
+      "best_context": "Unhurried afternoons when you can linger.",
+      "estimated_sessions": 5,
+      "genres": [
+        "literary",
+        "classics"
+      ]
+    },
+    {
+      "id": "nine-stories",
+      "title": "Nine Stories",
+      "author": "J. D. Salinger",
+      "why_this_book": "Short, precise stories that suit 30–60 minute sessions and a measured pace.",
+      "best_context": "Short sessions when you want a complete arc.",
+      "estimated_sessions": 4,
+      "genres": [
+        "short-stories",
+        "classics",
+        "literary"
+      ]
+    }
+  ]
+}
