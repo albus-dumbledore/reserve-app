@@ -282,11 +282,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Message required.' }, { status: 400 });
     }
 
-    // Check if request is for children/kids
+    // Check if request is for children/kids (including age-specific requests)
     const messageLower = message.toLowerCase();
+    const ageMatch = messageLower.match(/(\d+)[\s-]?year[\s-]?old/);
+    const requestedAge = ageMatch ? parseInt(ageMatch[1]) : null;
     const isChildrensRequest = messageLower.includes('kid') || messageLower.includes('child') ||
                                 messageLower.includes('young') || messageLower.includes('family') ||
-                                messageLower.includes('age appropriate');
+                                messageLower.includes('age appropriate') ||
+                                (requestedAge !== null && requestedAge <= 12);
 
     // Detect Indian context
     const isIndianContext = context?.location?.toLowerCase().includes('india') ||
@@ -297,13 +300,75 @@ export async function POST(req: Request) {
 
     let candidates = candidateSet(message);
 
-    // Filter out adult content for children's requests
+    // Boost Indian authors when Indian context is detected
+    if (isIndianContext) {
+      const indianAuthors = [
+        'r.k. narayan', 'r k narayan', 'ruskin bond', 'amitav ghosh',
+        'arundhati roy', 'jhumpa lahiri', 'vikram seth', 'anita desai',
+        'salman rushdie', 'rohinton mistry', 'kiran desai', 'aravind adiga',
+        'chetan bhagat', 'amish tripathi', 'shashi tharoor', 'premchand',
+        'tagore', 'rabindranath tagore', 'mulk raj anand', 'r.k. laxman'
+      ];
+
+      // Separate Indian and non-Indian authors
+      const indianBooks: typeof candidates = [];
+      const otherBooks: typeof candidates = [];
+
+      candidates.forEach(book => {
+        const authorLower = book.author.toLowerCase();
+        const titleLower = book.title.toLowerCase();
+        const isIndianAuthor = indianAuthors.some(name => authorLower.includes(name));
+        const isAboutIndia = titleLower.includes('india') || titleLower.includes('delhi') ||
+                            titleLower.includes('mumbai') || titleLower.includes('bengal');
+
+        if (isIndianAuthor || isAboutIndia) {
+          indianBooks.push(book);
+        } else {
+          otherBooks.push(book);
+        }
+      });
+
+      // Prioritize Indian content: 70% Indian authors, 30% others
+      const indianCount = Math.ceil(candidates.length * 0.7);
+      candidates = [
+        ...indianBooks.slice(0, indianCount),
+        ...otherBooks.slice(0, candidates.length - indianCount)
+      ];
+    }
+
+    // Filter out inappropriate content for children's requests
     if (isChildrensRequest) {
-      const adultKeywords = ['kama sutra', 'kamasutra', 'erotic', 'adult', 'mature', 'explicit', 'sex'];
+      const inappropriateKeywords = [
+        // Adult content
+        'kama sutra', 'kamasutra', 'erotic', 'adult', 'mature', 'explicit', 'sex',
+        // Academic/Advanced texts not suitable for children
+        'anthology', 'essays', 'grammar', 'philosophy', 'critique', 'theory',
+        'norton', 'oxford companion', 'encyclopedia', 'dictionary', 'handbook',
+        'montaigne', 'nietzsche', 'kafka', 'joyce', 'woolf',
+        // Complex literary works
+        'ulysses', 'finnegans wake', 'being and time', 'capital'
+      ];
+
       candidates = candidates.filter((book) => {
         const bookTitle = book.title.toLowerCase();
+        const bookAuthor = book.author.toLowerCase();
         const bookDesc = (book.description || '').toLowerCase();
-        return !adultKeywords.some(keyword => bookTitle.includes(keyword) || bookDesc.includes(keyword));
+        const combinedText = `${bookTitle} ${bookAuthor} ${bookDesc}`;
+
+        // Exclude if it matches inappropriate keywords
+        if (inappropriateKeywords.some(keyword => combinedText.includes(keyword))) {
+          return false;
+        }
+
+        // For very young children (under 8), be even more strict
+        if (requestedAge !== null && requestedAge < 8) {
+          // Exclude books with "Volume", "Part", suggesting academic series
+          if (bookTitle.includes('volume') || bookTitle.includes('part i')) {
+            return false;
+          }
+        }
+
+        return true;
       });
     }
 
@@ -323,7 +388,7 @@ export async function POST(req: Request) {
       ? `\n\nCurrent Reading Context:\n- Location: ${context.location || 'Not specified'}\n- Season: ${context.season}\n- Time of Day: ${context.timeOfDay}${context.weather ? `\n- Weather: ${context.weather.condition}, ${context.weather.temp}°C` : ''}\n- Reading Mood: ${context.readingMood}${isIndianContext ? '\n- Cultural Context: Indian reader - consider Indian authors, settings, and cultural sensibilities' : ''}\n\nUSE THIS CONTEXT: Factor in the weather, season, and time of day when making recommendations. ${context.weather?.condition.includes('Rain') ? 'Rainy weather pairs well with cozy, introspective reads.' : context.weather?.condition.includes('Sun') || context.weather?.condition.includes('Clear') ? 'Clear weather invites bright, energizing books.' : context.season === 'Winter' ? 'Winter calls for contemplative, intimate reads.' : context.season === 'Summer' ? 'Summer energy suits lighter, adventurous books.' : ''}${isIndianContext ? ' For Indian readers, consider books by Indian authors, books set in India, or themes relevant to Indian culture when appropriate.' : ''}`
       : '';
 
-    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? '\n\n⚠️ CRITICAL CONTENT SAFETY: This is a request for CHILDREN\'S/FAMILY books. You MUST:\n- ONLY recommend age-appropriate, family-friendly books\n- ABSOLUTELY NO adult content, mature themes, or explicit material\n- Focus on children\'s literature, young adult, or gentle family reads\n- Avoid any books with violence, adult themes, or inappropriate content' : ''}${isIndianContext ? '\n\n🇮🇳 INDIAN READER CONTEXT: Consider Indian cultural sensibilities, authors, and themes. When appropriate, prioritize:\n- Indian authors (R.K. Narayan, Arundhati Roy, Amitav Ghosh, Ruskin Bond, etc.)\n- Books set in India or exploring Indian culture\n- Themes relevant to Indian readers\n- Cultural festivals, seasons, and social context' : ''}
+    const prompt = `You are a deeply perceptive literary concierge for a physical-book reading room. Your gift is understanding what readers truly need emotionally, contextually, and intellectually.${isChildrensRequest ? `\n\n⚠️ CRITICAL CONTENT SAFETY - ${requestedAge ? `AGE ${requestedAge}` : 'CHILDREN\'S'} REQUEST:\nYou MUST:\n- ONLY recommend books specifically written for ${requestedAge ? `${requestedAge}-year-olds` : 'children'}\n- NO academic texts, anthologies, grammar books, or advanced literature\n- NO adult authors like Virginia Woolf, Montaigne, Kafka, Joyce\n- ONLY children's books, picture books, early readers, or age-appropriate stories\n- Examples of GOOD suggestions: ${requestedAge && requestedAge <= 8 ? 'Picture books, Dr. Seuss, Eric Carle, simple stories with illustrations' : 'Young adult novels, chapter books, age-appropriate fiction'}\n- Examples of BAD suggestions: Norton Anthology, Essays, Grammar textbooks, Classic literature not written for children` : ''}${isIndianContext ? '\n\n🇮🇳 INDIAN READER CONTEXT - VERY IMPORTANT:\nYou MUST actively prioritize Indian authors and content:\n- FIRST PRIORITY: Indian authors (R.K. Narayan, Ruskin Bond, Amitav Ghosh, Arundhati Roy, Jhumpa Lahiri, Vikram Seth, Anita Desai, Salman Rushdie)\n- SECOND PRIORITY: Books set in India or about Indian culture\n- THIRD PRIORITY: South Asian authors and themes\n- Consider Indian festivals (Diwali, Holi), monsoon season, and cultural context\n- Use Indian examples and references when explaining choices\n- DO NOT ignore this context - actively search for Indian authors in your recommendations' : ''}
 
 ANALYZE THE REQUEST FIRST:
 
