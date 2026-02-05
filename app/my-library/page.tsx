@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AccessGate from '@/app/components/AccessGate';
 import Container from '@/app/components/Container';
 import TopNav from '@/app/components/TopNav';
@@ -17,6 +18,7 @@ interface BookOption {
 }
 
 export default function MyLibraryPage() {
+  const router = useRouter();
   const library = useStoredState<UserLibraryBook[]>(STORAGE_KEYS.userLibrary, []);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -80,11 +82,12 @@ export default function MyLibraryPage() {
     }
   };
 
-  const handleAdd = async () => {
+  const handleAdd = async (startSession = false) => {
     if (!selectedBook) return;
 
+    const bookId = makeId();
     const nextBook: UserLibraryBook = {
-      id: makeId(),
+      id: bookId,
       title: selectedBook.title,
       author: selectedBook.author || undefined,
       summary: selectedBook.summary,
@@ -102,6 +105,11 @@ export default function MyLibraryPage() {
     setBookOptions([]);
     setSelectedBook(null);
     setShowForm(false);
+
+    // Navigate to session select if requested
+    if (startSession) {
+      router.push(`/session/select?itemId=${bookId}`);
+    }
   };
 
   const handleSetCurrent = (id: string) => {
@@ -239,23 +247,36 @@ export default function MyLibraryPage() {
                       ))}
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleAdd(false)}
+                          disabled={!selectedBook}
+                          className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium ${
+                            selectedBook
+                              ? 'border border-[var(--border)] text-[var(--text)] hover:border-[var(--text)] hover:bg-[var(--card)]'
+                              : 'border border-[var(--border)] text-[var(--muted)]'
+                          }`}
+                        >
+                          Save Book
+                        </button>
+                        <button
+                          onClick={() => handleAdd(true)}
+                          disabled={!selectedBook}
+                          className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium ${
+                            selectedBook
+                              ? 'border border-[var(--text)] bg-[var(--text)] text-[var(--bg)]'
+                              : 'border border-[var(--border)] text-[var(--muted)]'
+                          }`}
+                        >
+                          Save & Start Session
+                        </button>
+                      </div>
                       <button
                         onClick={handleCancel}
-                        className="flex-1 rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--muted)]"
+                        className="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--muted)]"
                       >
                         Cancel
-                      </button>
-                      <button
-                        onClick={handleAdd}
-                        disabled={!selectedBook}
-                        className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium ${
-                          selectedBook
-                            ? 'border border-[var(--text)] bg-[var(--text)] text-[var(--bg)]'
-                            : 'border border-[var(--border)] text-[var(--muted)]'
-                        }`}
-                      >
-                        Save Book
                       </button>
                     </div>
                   </>
